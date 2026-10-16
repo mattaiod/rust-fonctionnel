@@ -870,7 +870,7 @@ section de ce kit et annonce ce que dira le compilateur si on se trompe.
 
 Pour chaque exercice : remplacez le `todo!()` de chaque fonction à écrire, puis lancez ses tests, par exemple
 `cargo test -p ch00-survie e01`. L'exercice est réussi quand tous ses tests passent, y compris `style_fonctionnel`,
-qui vérifie que votre code n'utilise ni `let mut`, ni `for`, ni `while`, ni `loop`, ni `for_each`.
+qui vérifie que votre code n'utilise ni `let mut`, ni `for`, ni `while`, ni `loop`, ni `for_each` (ni `try_for_each`).
 
 | # | Fichier | Le piège | Section |
 |---|---|---|---|

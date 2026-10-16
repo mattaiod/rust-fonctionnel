@@ -25,7 +25,7 @@ Dans chaque chapitre, le dernier exercice n'a déjà plus de version de départ.
 
 Les fonctions à écrire contiennent un `todo!()`. Remplacez-le. Dans votre version :
 
-- ni `let mut`, ni `for`, ni `while`, ni `loop`, ni `for_each` ;
+- ni `let mut`, ni `for`, ni `while`, ni `loop`, ni `for_each` (ni `try_for_each`) ;
 - autorisés : les itérateurs, les closures, la récursion, `if` et `match`, `?`, et `|mut acc, x|` dans un `fold`.
 
 Un test `style_fonctionnel` relit votre code et vérifie cette règle, y compris dans les fonctions d'aide que vous

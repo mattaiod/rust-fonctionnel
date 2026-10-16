@@ -18,24 +18,102 @@ pub fn trier_par<T>(
 
 /// Vérification du style fonctionnel : relit le source d'un exercice et y cherche les mots interdits.
 pub mod style {
-    const INTERDITS: [&str; 4] = ["for", "while", "loop", "for_each"];
+    const INTERDITS: [&str; 5] = ["for", "while", "loop", "for_each", "try_for_each"];
 
-    /// Retire les commentaires `//` et le contenu des chaînes `"…"`.
+    fn est_ident(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
+
+    /// Remplace les commentaires (`//`, `/* */` même imbriqués) par une espace, les chaînes (`"…"`, `b"…"`,
+    /// `r#"…"#`) par `""` et les caractères (`'x'`, `'\n'`) par `' '`, sans toucher aux lifetimes (`'a`).
+    ///
+    /// Un analyseur caractère par caractère : ici, la boucle et l'état mutable sont le plus lisible.
     fn nettoyer(source: &str) -> String {
-        source
-            .lines()
-            .map(|ligne| ligne.split("//").next().unwrap_or(""))
-            .map(|ligne| {
-                ligne
-                    .split('"')
-                    .enumerate()
-                    .filter(|(i, _)| i % 2 == 0)
-                    .map(|(_, morceau)| morceau)
-                    .collect::<Vec<_>>()
-                    .join("\"\"")
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
+        let c: Vec<char> = source.chars().collect();
+        let a = |k: usize| c.get(k).copied().unwrap_or('\0');
+        let mut sortie = String::with_capacity(source.len());
+        let mut i = 0;
+        while i < c.len() {
+            let debut_brut = a(i) == 'r'
+                && (i == 0
+                    || !est_ident(a(i - 1))
+                    || (a(i - 1) == 'b' && (i < 2 || !est_ident(a(i - 2)))));
+            let dieses = if debut_brut {
+                c[i + 1..].iter().take_while(|&&x| x == '#').count()
+            } else {
+                0
+            };
+            if a(i) == '/' && a(i + 1) == '/' {
+                while i < c.len() && a(i) != '\n' {
+                    i += 1;
+                }
+            } else if a(i) == '/' && a(i + 1) == '*' {
+                let mut profondeur = 0;
+                while i < c.len() {
+                    if a(i) == '/' && a(i + 1) == '*' {
+                        profondeur += 1;
+                        i += 2;
+                    } else if a(i) == '*' && a(i + 1) == '/' {
+                        profondeur -= 1;
+                        i += 2;
+                        if profondeur == 0 {
+                            break;
+                        }
+                    } else {
+                        i += 1;
+                    }
+                }
+                sortie.push(' ');
+            } else if debut_brut && a(i + 1 + dieses) == '"' {
+                i += dieses + 2;
+                while i < c.len() && !(a(i) == '"' && (1..=dieses).all(|k| a(i + k) == '#')) {
+                    i += 1;
+                }
+                i += dieses + 1;
+                sortie.push_str("\"\"");
+            } else if a(i) == '"' {
+                i += 1;
+                while i < c.len() && a(i) != '"' {
+                    i += if a(i) == '\\' { 2 } else { 1 };
+                }
+                i += 1;
+                sortie.push_str("\"\"");
+            } else if a(i) == '\'' && a(i + 1) == '\\' {
+                i += 2;
+                while i < c.len() && a(i) != '\'' {
+                    i += 1;
+                }
+                i += 1;
+                sortie.push_str("' '");
+            } else if a(i) == '\'' && a(i + 2) == '\'' {
+                i += 3;
+                sortie.push_str("' '");
+            } else {
+                sortie.push(a(i));
+                i += 1;
+            }
+        }
+        sortie
+    }
+
+    /// Le source sans les modules de tests (`#[cfg(test)] mod … { … }`, où qu'ils soient dans le fichier). Un
+    /// `#[cfg(test)]` posé sur autre chose qu'un module ne protège rien.
+    fn sans_tests(source: &str) -> String {
+        const ATTRIBUT: &str = "#[cfg(test)]";
+        match source.find(ATTRIBUT) {
+            None => source.to_string(),
+            Some(debut) => {
+                let suite = &source[debut + ATTRIBUT.len()..];
+                if suite.trim_start().starts_with("mod ") {
+                    let ouverture =
+                        debut + ATTRIBUT.len() + suite.find('{').expect("module sans accolade");
+                    let fin = ouverture + bloc(source, ouverture).len();
+                    format!("{}{}", &source[..debut], sans_tests(&source[fin..]))
+                } else {
+                    format!("{}{}", &source[..debut + ATTRIBUT.len()], sans_tests(suite))
+                }
+            }
+        }
     }
 
     /// Le bloc qui commence à l'accolade `ouverture`, accolades comprises.
@@ -56,29 +134,27 @@ pub mod style {
         &source[ouverture..=fin]
     }
 
-    /// Les fonctions écrites avant les tests, avec leur corps : `(nom, corps)`. Les déclarations sans corps
-    /// (`fn nom(&self);` dans un `trait`) sont ignorées.
+    /// Les fonctions et les `macro_rules!` du fichier, hors modules de tests, avec leur corps : `(nom, corps)`. Les
+    /// déclarations sans corps (`fn nom(&self);` dans un `trait`) sont ignorées.
     fn fonctions(source: &str) -> Vec<(String, String)> {
-        let avant_tests = source.split("#[cfg(test)]").next().unwrap_or("");
-        avant_tests
-            .match_indices("fn ")
-            .filter(|(i, _)| {
-                avant_tests[..*i]
-                    .chars()
-                    .last()
-                    .is_none_or(|c| !(c.is_alphanumeric() || c == '_'))
-            })
-            .filter_map(|(i, _)| {
-                let apres = &avant_tests[i + 3..];
-                let nom: String = apres
-                    .chars()
-                    .take_while(|c| c.is_alphanumeric() || *c == '_')
-                    .collect();
-                let accolade = apres.find('{')?;
-                let point_virgule = apres.find(';').unwrap_or(usize::MAX);
-                (!nom.is_empty() && accolade < point_virgule)
-                    .then(|| (nom, bloc(avant_tests, i + 3 + accolade).to_string()))
-            })
+        let code = sans_tests(source);
+        let elements = |motif: &'static str, etiquette: fn(String) -> String| {
+            code.match_indices(motif)
+                .filter(|(i, _)| code[..*i].chars().last().is_none_or(|c| !est_ident(c)))
+                .filter_map(|(i, _)| {
+                    let apres = code[i + motif.len()..].trim_start();
+                    let decalage = code.len() - apres.len();
+                    let nom: String = apres.chars().take_while(|c| est_ident(*c)).collect();
+                    let accolade = apres.find('{')?;
+                    let point_virgule = apres.find(';').unwrap_or(usize::MAX);
+                    (!nom.is_empty() && accolade < point_virgule)
+                        .then(|| (etiquette(nom), bloc(&code, decalage + accolade).to_string()))
+                })
+                .collect::<Vec<_>>()
+        };
+        elements("fn ", |nom| nom)
+            .into_iter()
+            .chain(elements("macro_rules!", |nom| format!("{nom}!")))
             .collect()
     }
 
@@ -114,7 +190,7 @@ pub mod style {
 
     /// Mots interdits trouvés dans le corps de `nom`.
     pub fn violations(source: &str, nom: &str) -> Vec<String> {
-        interdits_dans(&corps(&nettoyer(source), nom))
+        interdits_dans(&corps(&sans_tests(&nettoyer(source)), nom))
     }
 
     /// Les fonctions d'aide (ni demandées, ni version de départ `_imperatif` / `_naif`) qui contiennent un mot
@@ -133,7 +209,8 @@ pub mod style {
     }
 
     /// Échoue si le corps de l'une des fonctions `noms`, ou d'une fonction d'aide ajoutée dans le fichier, contient
-    /// `let mut`, une boucle ou `for_each`. Seules les versions de départ (`_imperatif`, `_naif`) et les tests y échappent.
+    /// `let mut`, une boucle, `for_each` ou `try_for_each` (une `macro_rules!` compte comme une fonction d'aide).
+    /// Seules les versions de départ (`_imperatif`, `_naif`) et les modules de tests y échappent.
     ///
     /// À appeler depuis un test avec `include_str!("le_fichier.rs")`.
     pub fn verifier(source: &str, noms: &[&str]) {
@@ -259,6 +336,24 @@ mod tests { fn compter() { let mut n = 0; loop { n += 1; } } }
                 vec!["`for`".to_string(), "`let mut`".to_string()]
             )]
         );
+    }
+
+    #[test]
+    fn ne_se_trompe_pas_sur_caracteres_chaines_et_commentaires() {
+        let source = "pub fn f<'a>(v: &'a [i64]) -> i64 {\n    let _a = '{';\n    let _b = '\"';\n    let _c = '\\'';\n    let _d = r#\"for \"x\" {\"#;\n    let _e = \"\\\" loop {\";\n    /* for /* while */ loop */\n    v.iter().sum()\n}\n";
+        assert!(style::violations(source, "f").is_empty());
+        assert!(style::violations_aides(source, &["f"]).is_empty());
+    }
+
+    #[test]
+    fn repere_les_aides_apres_les_tests_les_macros_et_try_for_each() {
+        let source = "pub fn f(v: &[i64]) -> i64 { v.iter().try_for_each(|_| Some(())); g(v) }\n#[cfg(test)]\nmod tests { fn t() { for _ in 0..1 {} } }\nfn g(v: &[i64]) -> i64 { let mut s = 0; for x in v { s += x } s }\nmacro_rules! m { () => { loop {} }; }\n#[cfg(test)]\nfn h() { while true {} }\n";
+        assert_eq!(style::violations(source, "f"), vec!["`try_for_each`"]);
+        let aides: Vec<String> = style::violations_aides(source, &["f"])
+            .into_iter()
+            .map(|(nom, _)| nom)
+            .collect();
+        assert_eq!(aides, vec!["g", "h", "m!"]);
     }
 
     #[test]

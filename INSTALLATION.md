@@ -113,7 +113,7 @@ test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 12 filtered out;
 2. ``assertion `left == right` failed`` suivi de `left:` et `right:` : votre fonction rend `left`, le test attendait
    `right`.
 3. `style_fonctionnel` échoue avec ``Pas encore fonctionnel : `garder_pairs` contient `for` `` : il reste un `let mut`,
-   un `for`, un `while`, un `loop` ou un `for_each` dans votre fonction. Tant que le `todo!()` est là, ce test passe :
+   un `for`, un `while`, un `loop` ou un `for_each` dans votre fonction ou dans une fonction d'aide. Tant que le `todo!()` est là, ce test passe :
    il ne prouve rien avant que la fonction soit écrite.
 4. `12 filtered out` : les tests des autres exercices, écartés par le filtre `e02`.
 5. Une erreur de compilation (`error[E0308]`…) : aucun test du chapitre ne tourne tant qu'elle reste. Lisez-la avec
