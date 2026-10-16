@@ -1,0 +1,9 @@
+[package]
+name = "ch02-closures"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+pf-outils.workspace = true

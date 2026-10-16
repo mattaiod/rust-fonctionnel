@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = [
+    "pf-outils",
+    "ch00-survie",
+    "ch01-purete",
+    "ch02-closures",
+    "ch03-iterateurs",
+    "ch04-reduire-chercher",
+    "ch05-combinators",
+    "ch06-recursion",
+    "ch07-composition",
+    "ch08-option-result",
+    "ch09-types-somme",
+    "ch10-newtypes",
+    "ch11-erreurs",
+    "ch12-typestate",
+    "ch13-traits",
+    "ch14-synthese",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.94"
+publish = false
+
+[workspace.dependencies]
+pf-outils = { path = "pf-outils" }
