@@ -38,15 +38,8 @@ pub mod style {
             .join("\n")
     }
 
-    /// Corps (accolades comprises) de la fonction `nom` dans un source nettoyé.
-    fn corps(source: &str, nom: &str) -> String {
-        let signature = format!("fn {nom}(");
-        let signature_generique = format!("fn {nom}<");
-        let debut = source
-            .find(&signature)
-            .or_else(|| source.find(&signature_generique))
-            .unwrap_or_else(|| panic!("fonction `{nom}` introuvable"));
-        let ouverture = debut + source[debut..].find('{').expect("pas d'accolade ouvrante");
+    /// Le bloc qui commence à l'accolade `ouverture`, accolades comprises.
+    fn bloc(source: &str, ouverture: usize) -> &str {
         let fin = source[ouverture..]
             .char_indices()
             .scan(0_i32, |profondeur, (i, c)| {
@@ -60,12 +53,37 @@ pub mod style {
             .find(|(_, profondeur)| *profondeur == 0)
             .map(|(i, _)| ouverture + i)
             .expect("accolades déséquilibrées");
-        source[ouverture..=fin].to_string()
+        &source[ouverture..=fin]
     }
 
-    /// Mots interdits trouvés dans le corps de `nom`.
-    pub fn violations(source: &str, nom: &str) -> Vec<String> {
-        let corps = corps(&nettoyer(source), nom);
+    /// Les fonctions écrites avant les tests, avec leur corps : `(nom, corps)`. Les déclarations sans corps
+    /// (`fn nom(&self);` dans un `trait`) sont ignorées.
+    fn fonctions(source: &str) -> Vec<(String, String)> {
+        let avant_tests = source.split("#[cfg(test)]").next().unwrap_or("");
+        avant_tests
+            .match_indices("fn ")
+            .filter(|(i, _)| {
+                avant_tests[..*i]
+                    .chars()
+                    .last()
+                    .is_none_or(|c| !(c.is_alphanumeric() || c == '_'))
+            })
+            .filter_map(|(i, _)| {
+                let apres = &avant_tests[i + 3..];
+                let nom: String = apres
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                let accolade = apres.find('{')?;
+                let point_virgule = apres.find(';').unwrap_or(usize::MAX);
+                (!nom.is_empty() && accolade < point_virgule)
+                    .then(|| (nom, bloc(avant_tests, i + 3 + accolade).to_string()))
+            })
+            .collect()
+    }
+
+    /// Mots interdits trouvés dans un corps de fonction nettoyé.
+    fn interdits_dans(corps: &str) -> Vec<String> {
         let mots: Vec<&str> = corps
             .split(|c: char| !(c.is_alphanumeric() || c == '_'))
             .filter(|mot| !mot.is_empty())
@@ -82,7 +100,40 @@ pub mod style {
             .collect()
     }
 
-    /// Échoue si le corps de l'une des fonctions `noms` contient `let mut`, une boucle ou `for_each`.
+    /// Corps (accolades comprises) de la fonction `nom` dans un source nettoyé.
+    fn corps(source: &str, nom: &str) -> String {
+        let signature = format!("fn {nom}(");
+        let signature_generique = format!("fn {nom}<");
+        let debut = source
+            .find(&signature)
+            .or_else(|| source.find(&signature_generique))
+            .unwrap_or_else(|| panic!("fonction `{nom}` introuvable"));
+        let ouverture = debut + source[debut..].find('{').expect("pas d'accolade ouvrante");
+        bloc(source, ouverture).to_string()
+    }
+
+    /// Mots interdits trouvés dans le corps de `nom`.
+    pub fn violations(source: &str, nom: &str) -> Vec<String> {
+        interdits_dans(&corps(&nettoyer(source), nom))
+    }
+
+    /// Les fonctions d'aide (ni demandées, ni version de départ `_imperatif` / `_naif`) qui contiennent un mot
+    /// interdit : `(nom, mots trouvés)`.
+    pub fn violations_aides(source: &str, noms: &[&str]) -> Vec<(String, Vec<String>)> {
+        fonctions(&nettoyer(source))
+            .into_iter()
+            .filter(|(nom, _)| {
+                !noms.contains(&nom.as_str())
+                    && !nom.ends_with("_imperatif")
+                    && !nom.ends_with("_naif")
+            })
+            .map(|(nom, corps)| (nom, interdits_dans(&corps)))
+            .filter(|(_, trouves)| !trouves.is_empty())
+            .collect()
+    }
+
+    /// Échoue si le corps de l'une des fonctions `noms`, ou d'une fonction d'aide ajoutée dans le fichier, contient
+    /// `let mut`, une boucle ou `for_each`. Seules les versions de départ (`_imperatif`, `_naif`) et les tests y échappent.
     ///
     /// À appeler depuis un test avec `include_str!("le_fichier.rs")`.
     pub fn verifier(source: &str, noms: &[&str]) {
@@ -91,6 +142,13 @@ pub mod style {
             .map(|nom| (nom, violations(source, nom)))
             .filter(|(_, trouves)| !trouves.is_empty())
             .map(|(nom, trouves)| format!("`{nom}` contient {}", trouves.join(", ")))
+            .chain(
+                violations_aides(source, noms)
+                    .into_iter()
+                    .map(|(nom, trouves)| {
+                        format!("la fonction d'aide `{nom}` contient {}", trouves.join(", "))
+                    }),
+            )
             .collect();
         assert!(
             erreurs.is_empty(),
@@ -179,6 +237,34 @@ pub fn generique<T: Clone>(v: &[T]) -> Vec<T> { { v.to_vec() } }
     fn ignore_commentaires_chaines_et_mut_de_closure() {
         assert!(style::violations(SOURCE, "fonctionnel").is_empty());
         assert!(style::violations(SOURCE, "generique").is_empty());
+    }
+
+    const AVEC_AIDE: &str = r#"
+pub trait Forme { fn aire(&self) -> f64; }
+pub fn somme_imperatif(v: &[i64]) -> i64 { let mut s = 0; for x in v { s += x; } s }
+fn aide(v: &[i64]) -> i64 { let mut s = 0; for x in v { s += x; } s }
+fn propre(v: &[i64]) -> i64 { v.iter().sum() }
+pub fn somme(v: &[i64]) -> i64 { aide(v) }
+#[cfg(test)]
+mod tests { fn compter() { let mut n = 0; loop { n += 1; } } }
+"#;
+
+    #[test]
+    fn repere_les_boucles_cachees_dans_une_fonction_d_aide() {
+        assert!(style::violations(AVEC_AIDE, "somme").is_empty());
+        assert_eq!(
+            style::violations_aides(AVEC_AIDE, &["somme"]),
+            vec![(
+                "aide".to_string(),
+                vec!["`for`".to_string(), "`let mut`".to_string()]
+            )]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "la fonction d'aide `aide` contient")]
+    fn verifier_echoue_sur_une_fonction_d_aide_imperative() {
+        style::verifier(AVEC_AIDE, &["somme"]);
     }
 
     #[test]

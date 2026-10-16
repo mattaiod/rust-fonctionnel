@@ -28,7 +28,8 @@ Les fonctions à écrire contiennent un `todo!()`. Remplacez-le. Dans votre vers
 - ni `let mut`, ni `for`, ni `while`, ni `loop`, ni `for_each` ;
 - autorisés : les itérateurs, les closures, la récursion, `if` et `match`, `?`, et `|mut acc, x|` dans un `fold`.
 
-Un test `style_fonctionnel` relit votre code et vérifie cette règle. Les autres tests vérifient le comportement,
+Un test `style_fonctionnel` relit votre code et vérifie cette règle, y compris dans les fonctions d'aide que vous
+ajoutez au fichier (seules la version de départ et les tests y échappent). Les autres tests vérifient le comportement,
 notamment que votre version rend exactement le même résultat que la version impérative sur des centaines de cas.
 
 ## Comment se déroule un chapitre
