@@ -1,0 +1,9 @@
+[package]
+name = "ch17-async"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+tokio.workspace = true

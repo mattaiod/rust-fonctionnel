@@ -1,6 +1,6 @@
 # Exercices : de l'impératif au fonctionnel en Rust
 
-Rust avancé, 3IABD. 15 chapitres (0 à 14), chacun dans son dossier : un `README.md` de cours, puis des exercices dans `src/`.
+Rust avancé, 3IABD. 20 chapitres (0 à 19), chacun dans son dossier : un `README.md`, puis des exercices dans `src/`.
 
 **Avant tout, [`INSTALLATION.md`](INSTALLATION.md)** : installer Rust, configurer VS Code (rust-analyzer), lancer
 les tests, les relancer automatiquement avec `bacon`, lire leur résultat.
@@ -72,6 +72,17 @@ comment lire le résultat des tests : [`INSTALLATION.md`](INSTALLATION.md).
 | 12 | `ch12-typestate` | Les états dans les types |
 | 13 | `ch13-traits` | Traits au service du domaine |
 | 14 | `ch14-synthese` | Directement en fonctionnel |
+| 15 | `ch15-traits` | Traits et génériques, `dyn`, `Display`, `From` |
+| 16 | `ch16-concurrence` | Threads, `Arc<Mutex>`, channels, rayon |
+| 17 | `ch17-async` | `async`/`.await`, `join!`, `tokio::spawn`, `spawn_blocking` |
+| 18 | `ch18-couches` | Une API Axum en couches : routes, contrôleur, service, repository |
+| 19 | `ch19-ffi` | Un module Python en Rust avec PyO3 |
+
+## Chapitres 15 à 19 : Rust avancé
+
+Pas de version de départ ni de test de style : chaque fichier est un exercice court. En haut, la consigne
+(**À faire**) et tout ce qu'il faut pour la faire (**Ce qu'il faut savoir**) ; au milieu, le `todo!()` à remplacer ;
+en bas, les tests. Faites les exercices dans l'ordre. Le chapitre 19 se lance avec `./lancer.sh` (voir son README).
 
 `pf-outils/` contient les outils des tests (vérification du style, jeux de données) et `trier_par`, un tri pur que
 vous pouvez utiliser. Rien à y modifier.
