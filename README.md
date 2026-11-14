@@ -41,6 +41,11 @@ notamment que votre version rend exactement le même résultat que la version im
    un `todo!()` à remplacer. Les tests sont en bas du fichier.
 3. Faites les exercices dans l'ordre : chacun prépare le suivant.
 
+## Le corrigé
+
+Le dossier [`corrige/`](corrige/) contient une solution pour chaque exercice, avec la même arborescence. Cherchez
+d'abord par vous-même : il sert à vérifier ou à vous débloquer.
+
 ## Commandes
 
 | Commande | Rôle |

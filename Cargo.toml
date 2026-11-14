@@ -23,7 +23,8 @@ members = [
     "ch18-couches",
 ]
 # ch19-ffi est un module Python : il se compile avec maturin (voir son README), pas avec cargo test.
-exclude = ["ch19-ffi"]
+# corrige/ est un workspace à part : cd corrige && cargo test.
+exclude = ["ch19-ffi", "corrige"]
 
 [workspace.package]
 edition = "2024"

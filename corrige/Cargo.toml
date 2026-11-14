@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = [
+    "pf-outils",
+    "ch00-survie",
+    "ch01-purete",
+    "ch02-closures",
+    "ch03-iterateurs",
+    "ch04-reduire-chercher",
+    "ch05-combinators",
+    "ch06-recursion",
+    "ch07-composition",
+    "ch08-option-result",
+    "ch09-types-somme",
+    "ch10-newtypes",
+    "ch11-erreurs",
+    "ch12-typestate",
+    "ch13-traits",
+    "ch14-synthese",
+    "ch15-traits",
+    "ch16-concurrence",
+    "ch17-async",
+    "ch18-couches",
+]
+# ch19-ffi est un module Python : il se compile avec maturin (voir son README), pas avec cargo test.
+# corrige/ est un workspace à part : cd corrige && cargo test.
+exclude = ["ch19-ffi", "corrige"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.94"
+publish = false
+
+[workspace.dependencies]
+pf-outils = { path = "pf-outils" }
+rayon = "1.12"
+tokio = { version = "1.53", features = ["full"] }
+axum = "0.8"
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
