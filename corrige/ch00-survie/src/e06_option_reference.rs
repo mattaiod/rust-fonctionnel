@@ -12,6 +12,9 @@ use std::collections::HashMap;
 ///
 /// Le premier nombre strictement négatif, ou `None`.
 pub fn premier_negatif(nombres: &[i64]) -> Option<i64> {
+    // Outils : `iter()`, `find(|n| …)`, `copied()`.
+    // `**n` : une étoile pour la référence de `iter()`, une pour celle que `find` ajoute.
+    // Ici `copied()` agit sur l'`Option<&i64>` rendue par `find`, pas sur l'itérateur.
     nombres.iter().find(|n| **n < 0).copied()
 }
 
@@ -23,6 +26,8 @@ pub fn premier_negatif(nombres: &[i64]) -> Option<i64> {
 ///
 /// Le premier mot d'au moins `longueur_min` caractères (copie), ou `None`.
 pub fn premier_mot_long(mots: &[String], longueur_min: usize) -> Option<String> {
+    // Outils : `iter()`, `find(|mot| …)`, `chars().count()`, `cloned()`.
+    // `cloned()` après `find` : une seule `String` copiée, celle trouvée, et aucune si `None`.
     mots.iter()
         .find(|mot| mot.chars().count() >= longueur_min)
         .cloned()
@@ -36,6 +41,9 @@ pub fn premier_mot_long(mots: &[String], longueur_min: usize) -> Option<String> 
 ///
 /// La quantité en stock du produit, 0 s'il n'est pas référencé.
 pub fn quantite(stocks: &HashMap<String, u32>, produit: &str) -> u32 {
+    // Outils : `get`, `copied()`, `unwrap_or(0)`.
+    // `get` accepte un `&str` pour des clés `String` grâce au trait `Borrow` : aucune `String` à construire.
+    // `copied()` avant `unwrap_or(0)` : on sort de la référence, puis on donne la valeur par défaut.
     stocks.get(produit).copied().unwrap_or(0)
 }
 

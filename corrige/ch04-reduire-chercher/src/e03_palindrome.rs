@@ -37,6 +37,8 @@ pub fn est_palindrome_imperatif(texte: &str) -> bool {
 /// - Si le compilateur dit ``E0599: `&str` is not an iterator`` : un `&str` ne se parcourt pas directement, passez
 ///   par `chars()`.
 pub fn inverser(texte: &str) -> String {
+    // Outils : `chars()`, `rev()`, `collect()`.
+    // `chars()` découpe en `char` : inverser les octets d'un mot accentué donnerait de l'UTF-8 invalide.
     texte.chars().rev().collect()
 }
 
@@ -51,6 +53,10 @@ pub fn inverser(texte: &str) -> String {
 /// - Si le compilateur dit ``E0277: can't compare `Vec<char>` with `Rev<…>` `` : `==` compare deux valeurs du même
 ///   type ; deux itérateurs se comparent avec `.eq(…)`.
 pub fn est_palindrome(texte: &str) -> bool {
+    // Outils : `chars()`, `filter(|c| c.is_alphanumeric())`, `flat_map(char::to_lowercase)`, `collect::<Vec<char>>()`, puis `iter().eq(….iter().rev())`.
+    // `flat_map` car `to_lowercase` rend un itérateur : certains caractères donnent plusieurs minuscules.
+    // Les lettres sont rangées dans un `Vec` : on doit les parcourir deux fois, une dans chaque sens.
+    // `eq` compare les deux itérateurs élément par élément et s'arrête à la première différence.
     let lettres: Vec<char> = texte
         .chars()
         .filter(|c| c.is_alphanumeric())

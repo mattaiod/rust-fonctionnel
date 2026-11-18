@@ -17,6 +17,8 @@ pub enum Resultat {
 
 /// La note qui compte pour la moyenne, `None` si le résultat ne compte pas.
 pub fn note_retenue(resultat: Resultat) -> Option<f64> {
+    // Toute la règle métier tient ici : `Some` pour ce qui compte dans la moyenne (0 pour une absence
+    // injustifiée), `None` pour ce qui en est exclu. Les autres fonctions n'ont plus qu'à s'en servir.
     match resultat {
         Resultat::Present { note } => Some(note),
         Resultat::AbsentInjustifie => Some(0.0),
@@ -34,6 +36,9 @@ pub fn note_retenue(resultat: Resultat) -> Option<f64> {
 ///   declared on the method `sum` `` : `sum::<f64>()`.
 /// - Si le compilateur dit `` error[E0277]: cannot divide `f64` by `usize` `` : `len() as f64`.
 pub fn moyenne(resultats: &[Resultat]) -> Option<f64> {
+    // `filter_map(note_retenue)` jette les `None` : une absence justifiée sort du numérateur et du dénominateur.
+    // `then` rend `None` si aucune note ne compte (sinon on diviserait par zéro, NaN en `f64`) ; sa closure
+    // n'est appelée que si la condition est vraie.
     let notes: Vec<f64> = resultats.iter().copied().filter_map(note_retenue).collect();
     (!notes.is_empty()).then(|| notes.iter().sum::<f64>() / notes.len() as f64)
 }
@@ -44,6 +49,8 @@ pub fn moyenne(resultats: &[Resultat]) -> Option<f64> {
 /// - L'accumulateur du `fold` peut être un couple `(0, 0)`, qu'on déstructure dans les paramètres : `|(justifiees,
 ///   injustifiees), resultat|`. On rend un nouveau couple, aucun `mut` nécessaire.
 pub fn absences(resultats: &[Resultat]) -> (usize, usize) {
+    // Un `fold` avec un couple comme accumulateur compte les deux sortes d'absences en un seul passage.
+    // Pas de `_` : une nouvelle variante forcera à décider ce qu'elle compte. Variante : deux `filter().count()`.
     resultats.iter().fold(
         (0, 0),
         |(justifiees, injustifiees), resultat| match resultat {
@@ -61,6 +68,9 @@ pub fn absences(resultats: &[Resultat]) -> (usize, usize) {
 ///   total, que `f64` n'a pas (à cause de `NaN`). `reduce(f64::max)` compare deux à deux.
 /// - `match` sur un `&Resultat` lie `note: &f64` → `Some(*note)`.
 pub fn meilleure_note(resultats: &[Resultat]) -> Option<f64> {
+    // Pas de `note_retenue` ici : elle compterait l'absence injustifiée comme un 0, qui n'est pas une note.
+    // `reduce` rend `None` sur un iterator vide, d'où le cas « aucun présent » sans test. `f64` n'a pas `Ord`
+    // (à cause de `NaN`), donc pas de `max()` ; `f64::max` compare deux nombres et sert de réduction.
     resultats
         .iter()
         .filter_map(|resultat| match resultat {

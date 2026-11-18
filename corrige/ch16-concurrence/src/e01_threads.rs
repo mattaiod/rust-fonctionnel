@@ -17,6 +17,9 @@ use std::thread;
 
 /// La somme de la série, calculée en deux moitiés, chacune dans un thread.
 pub fn somme_en_deux(valeurs: Vec<f64>) -> f64 {
+    // `split_off` laisse deux `Vec` possédés : chacun peut être déplacé (`move`) dans son thread.
+    // Les deux threads sont lancés avant le premier `join` : ils tournent en même temps. Joindre `t1` avant
+    // de lancer `t2` rendrait le calcul séquentiel.
     let mut gauche = valeurs;
     let droite = gauche.split_off(gauche.len() / 2);
     let t1 = thread::spawn(move || gauche.iter().sum::<f64>());

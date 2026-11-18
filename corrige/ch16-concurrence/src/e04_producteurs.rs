@@ -18,6 +18,9 @@ use std::thread;
 
 /// Tous les `(id, valeur)` envoyés par les capteurs, triés.
 pub fn collecter(capteurs: Vec<(u32, Vec<f64>)>) -> Vec<(u32, f64)> {
+    // Un clone de `tx` par thread, puis `drop(tx)` sur l'original : sinon `rx.iter()` attendrait pour toujours.
+    // L'ordre d'arrivée dépend de l'ordonnanceur : le tri rend un résultat reproductible. `partial_cmp(...).unwrap()`
+    // panique sur un `NaN` ; sans panique : `a.0.cmp(&b.0).then(a.1.total_cmp(&b.1))`.
     let (tx, rx) = mpsc::channel();
     capteurs.into_iter().for_each(|(id, valeurs)| {
         let tx = tx.clone();

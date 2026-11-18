@@ -39,6 +39,8 @@ pub fn ajouter<R: MesuresRepository>(
 
 /// Les statistiques du capteur, `None` s'il n'existe pas.
 pub fn stats_capteur<R: MesuresRepository>(repo: &R, capteur_id: u32) -> Option<StatsCapteur> {
+    // Le service dépend du trait, pas de `MesuresEnMemoire` : les tests le font tourner sans base ni serveur.
+    // `valeurs_de` n'est appelé qu'une fois : les trois calculs travaillent sur la même copie.
     if !repo.capteur_existe(capteur_id) {
         return None;
     }

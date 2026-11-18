@@ -40,6 +40,8 @@ impl TryFrom<&str> for CodePostal {
     /// - Pour trouver le premier caractère fautif, `find` rend une `Option<char>` : `if let Some(c) = ...` puis
     ///   `return Err(...)`.
     fn try_from(texte: &str) -> Result<Self, Self::Error> {
+        // Même schéma que `Email` : on parse une fois, le champ privé fait tenir l'invariant partout ensuite.
+        // Un retour anticipé par règle, dans l'ordre de l'enum : longueur, caractères, département.
         let texte = texte.trim();
         let longueur = texte.chars().count();
         if longueur != 5 {
@@ -59,6 +61,7 @@ impl FromStr for CodePostal {
     type Err = ErreurCodePostal;
 
     fn from_str(texte: &str) -> Result<Self, Self::Err> {
+        // On délègue : la règle n'existe qu'à un endroit.
         CodePostal::try_from(texte)
     }
 }
@@ -80,6 +83,8 @@ impl CodePostal {
     /// - `&self.0[..3].to_string()` donne `E0515 cannot return reference to temporary value` : la `String` créée
     ///   meurt à la fin de la fonction. Prêtez un morceau de `self.0`, rien de neuf.
     pub fn departement(&self) -> &str {
+        // `[..3]` découpe en octets. Sans danger ici : l'invariant garantit 5 chiffres ASCII, un octet chacun.
+        // Sur une chaîne quelconque, couper au milieu d'un caractère multi-octet ferait paniquer.
         if self.0.starts_with("97") || self.0.starts_with("98") {
             &self.0[..3]
         } else {
@@ -89,6 +94,7 @@ impl CodePostal {
 
     /// Vrai pour les codes d'outre-mer.
     pub fn est_outre_mer(&self) -> bool {
+        // On réutilise `departement` : la règle « 97 ou 98 » n'est écrite qu'une fois.
         self.departement().len() == 3
     }
 }
@@ -102,6 +108,8 @@ impl CodePostal {
 /// - Une collection de la bibliothèque standard trie et dédoublonne toute seule (`std::collections`). Sans `use`,
 ///   `E0425 cannot find type ... in this scope` : écrivez le chemin complet ou ajoutez le `use`.
 pub fn codes_valides(saisie: &str) -> Vec<CodePostal> {
+    // `parse()` vise `CodePostal`, déduit du type collecté plus bas : c'est votre `FromStr` qui travaille.
+    // Le `BTreeSet` trie (par le `derive(Ord)`) et dédoublonne d'un coup ; on revient ensuite à un `Vec`.
     saisie
         .split(',')
         .filter_map(|morceau| morceau.parse().ok())

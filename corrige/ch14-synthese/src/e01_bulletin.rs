@@ -40,6 +40,8 @@ pub enum Mention {
 ///   `E0368 binary assignment operation += cannot be applied to type &mut f64`. Écrivez `*somme += ...`.
 /// - `somme / nombre` donne `E0277 cannot divide f64 by u32` : `f64::from(nombre)`.
 pub fn moyennes_par_eleve(notes: &[Note]) -> BTreeMap<String, f64> {
+    // Deux temps : le `fold` cumule (somme, nombre) par élève, puis `map` divise une seule fois à la fin.
+    // La `BTreeMap` range les élèves par nom sans tri à écrire.
     notes
         .iter()
         .fold(BTreeMap::<String, (f64, u32)>::new(), |mut cumuls, note| {
@@ -61,6 +63,8 @@ pub fn moyennes_par_eleve(notes: &[Note]) -> BTreeMap<String, f64> {
 /// - Deux critères : `total_cmp(...)` puis `.then_with(|| nom_a.cmp(nom_b))`. Pour l'ordre décroissant, inversez `a`
 ///   et `b` dans la comparaison.
 pub fn classement(notes: &[Note]) -> Vec<(String, f64)> {
+    // On réutilise `moyennes_par_eleve` au lieu de recompter. `moyenne_b.total_cmp(moyenne_a)` : `b` avant `a`
+    // donne l'ordre décroissant, `then_with` ne départage par le nom qu'en cas d'égalité.
     pf_outils::trier_par(
         moyennes_par_eleve(notes),
         |(nom_a, moyenne_a), (nom_b, moyenne_b)| {
@@ -79,6 +83,8 @@ pub fn classement(notes: &[Note]) -> Vec<(String, f64)> {
 /// - Commencez par écarter ce qui n'est pas entre 0 et 20 : `NaN` échoue à toutes les comparaisons,
 ///   `(0.0..=20.0).contains(&m)` l'écarte aussi.
 pub fn mention(moyenne: f64) -> Option<Mention> {
+    // Le premier bras écarte tout ce qui sort de [0, 20], `NaN` compris (aucune plage ne le contient).
+    // Les gardes vont du plus haut au plus bas : le premier bras vrai gagne, pas besoin de borne haute.
     match moyenne {
         m if !(0.0..=20.0).contains(&m) => None,
         m if m >= 16.0 => Some(Mention::TresBien),

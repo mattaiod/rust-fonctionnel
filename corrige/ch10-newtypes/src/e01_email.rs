@@ -66,6 +66,9 @@ impl TryFrom<&str> for Email {
     /// - `Email(texte)` avec `texte: &str` donne `E0308 … expected String, found &str` : le champ possède sa chaîne,
     ///   fabriquez la `String` (`to_string()`) seulement dans le `Ok` final.
     fn try_from(texte: &str) -> Result<Self, Self::Error> {
+        // But : un retour anticipé par règle, ou un `match` sur `split_once('@')` avec des gardes.
+        // Parse, don't validate : le champ est privé, ce constructeur est donc le seul point d'entrée.
+        // Tout `Email` qui existe a passé ces règles, et le reste du code n'a plus jamais à revérifier.
         let texte = texte.trim();
         if texte.is_empty() {
             return Err(ErreurEmail::Vide);
@@ -73,6 +76,8 @@ impl TryFrom<&str> for Email {
         if texte.contains(char::is_whitespace) {
             return Err(ErreurEmail::ContientUnEspace);
         }
+        // `split_once` coupe au premier `@` : un second `@` reste dans le domaine, d'où la première garde.
+        // Les bras sont essayés de haut en bas : leur ordre fixe quelle erreur sort quand plusieurs règles échouent.
         match texte.split_once('@') {
             None => Err(ErreurEmail::ArobaseManquante),
             Some((_, domaine)) if domaine.contains('@') => Err(ErreurEmail::PlusieursArobases),
@@ -95,6 +100,8 @@ impl FromStr for Email {
     ///   `E0308 ? operator has incompatible types … found Email`, retirez le `?`.
     /// - `Email::from(texte)` n'existe pas (seul `TryFrom` est écrit) : `E0308 … expected Email, found &str`.
     fn from_str(texte: &str) -> Result<Self, Self::Err> {
+        // But : ne pas réécrire la règle.
+        // On délègue à `try_from` : la règle vit à un seul endroit, `parse` et `try_from` ne peuvent pas diverger.
         Email::try_from(texte)
     }
 }
@@ -109,6 +116,8 @@ impl fmt::Display for Email {
     /// - Piège qui compile : `write!(f, "{}", self)` rappelle ce même `fmt` sans fin, et le test meurt sur
     ///   `has overflowed its stack`. Affichez le champ, pas `self`.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // But : afficher l'adresse telle quelle.
+        // Rien à formater : `write_str` suffit. `write!(f, "{}", self.0)` marche aussi.
         f.write_str(&self.0)
     }
 }
@@ -120,6 +129,8 @@ impl Email {
     /// - `self.0` est une `String` qui appartient à `self` : on ne la rend pas, on la prête.
     ///   `E0308 … expected &str, found String` propose lui-même le remède (`consider borrowing here`).
     pub fn as_str(&self) -> &str {
+        // But : un accès en lecture seule au champ privé.
+        // On prête la chaîne : l'appelant lit, mais ne peut ni la modifier ni casser l'invariant.
         &self.0
     }
 
@@ -131,6 +142,9 @@ impl Email {
     /// - Rendez un morceau de `self.0` (une `&str`), pas une copie : `.to_string()` donne
     ///   `E0308 … expected &str, found String`.
     pub fn domaine(&self) -> &str {
+        // But : pas d'`Option` dans le type de retour ; l'invariant suffit.
+        // L'invariant garantit exactement un `@` : cet `expect` ne peut pas échouer, et son message dit pourquoi.
+        // Un `expect` documente une impossibilité. Il ne remplace jamais une vérification.
         self.0
             .split_once('@')
             .map(|(_, domaine)| domaine)

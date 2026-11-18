@@ -25,6 +25,8 @@ pub enum ErreurRle {
 /// - Le résultat est une `String` : `collect()` sait concaténer des `String` en une seule. `collect::<Vec<String>>()`
 ///   donne `E0308 … expected String, found Vec<String>`.
 pub fn compresser(texte: &str) -> String {
+    // `chunk_by` découpe la tranche en suites d'éléments consécutifs égaux : exactement les suites du RLE.
+    // `suite[0]` ne panique pas, `chunk_by` ne produit jamais de groupe vide.
     let caracteres: Vec<char> = texte.chars().collect();
     caracteres
         .chunk_by(|a, b| a == b)
@@ -44,6 +46,9 @@ pub fn compresser(texte: &str) -> String {
 /// - `'a'.repeat(n)` donne `E0599 no method named repeat found for type char` : `repeat` est une méthode de `str`,
 ///   passez par `to_string()`.
 pub fn decompresser(code: &str) -> Result<String, ErreurRle> {
+    // Regrouper par « chiffre ou non » alterne lettres et comptes ; `chunks(2)` les remet en paires.
+    // `collect()` vers un `Result<String, _>` s'arrête à la première `Err` : aucune gestion d'erreur à la main.
+    // `"a0"` se lit bien en `usize` : c'est le `filter(|n| *n > 0)` qui le refuse.
     let caracteres: Vec<char> = code.chars().collect();
     let groupes: Vec<&[char]> = caracteres
         .chunk_by(|a, b| a.is_ascii_digit() == b.is_ascii_digit())

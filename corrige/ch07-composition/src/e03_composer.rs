@@ -21,7 +21,12 @@ pub fn appliquer_tout_imperatif(fonctions: &[Box<dyn Fn(i32) -> i32>], depart: i
 
 /// `f` puis `g` : la fonction `x ↦ g(f(x))`.
 pub fn composer<A, B, C>(f: impl Fn(A) -> B, g: impl Fn(B) -> C) -> impl Fn(A) -> C {
-    move |x| g(f(x))
+    move |x| {
+        // Appliquer l'une puis l'autre.
+        // L'ordre suit les types : `f` rend un `B`, et seule `g` sait le prendre. Le `move` fait entrer `f` et `g`
+        // dans la closure rendue, qui doit pouvoir vivre après la fin de `composer`.
+        g(f(x))
+    }
 }
 
 /// Une seule fonction qui applique toutes les `fonctions`, dans l'ordre de la liste.
@@ -35,6 +40,10 @@ pub fn composer<A, B, C>(f: impl Fn(A) -> B, g: impl Fn(B) -> C) -> impl Fn(A) -
 ///   `fonctions.iter()` ne fait que prêter les fonctions, qui meurent à la fin de `composer_tout`. `into_iter()` les
 ///   donne.
 pub fn composer_tout(fonctions: Vec<Box<dyn Fn(i32) -> i32>>) -> Box<dyn Fn(i32) -> i32> {
+    // Replier la liste en partant de l'identité, en composant l'accumulateur avec chaque fonction.
+    // L'identité est l'élément neutre : sans fonction, on rend `x` tel quel. L'annotation dit le type de
+    // l'accumulateur du `fold`, une `Box<dyn Fn>`, celui que rend chaque tour. Ici le compilateur le déduirait
+    // aussi du type de retour de `composer_tout`, mais l'écrire rend l'intention visible.
     let identite: Box<dyn Fn(i32) -> i32> = Box::new(|x| x);
     fonctions
         .into_iter()

@@ -27,6 +27,10 @@ pub fn appliquer_n_fois_imperatif(f: impl Fn(i64) -> i64, n: u32, x: i64) -> i64
 /// - Ne passez pas `&f` à l'appel récursif : la compilation échoue sur
 ///   ``reached the recursion limit while instantiating``.
 pub fn appliquer_n_fois(f: impl Fn(i64) -> i64, n: u32, x: i64) -> i64 {
+    // Outils : `(0..n).fold(x, |acc, _| …)`.
+    // La range `0..n` sert de compteur : ses valeurs sont ignorées (`_`), seul le nombre de tours compte.
+    // Pour `n = 0`, la range est vide et le `fold` rend `x` tel quel, sans cas particulier.
+    // Variante récursive : `match n { 0 => x, _ => { let y = f(x); appliquer_n_fois(f, n - 1, y) } }`.
     (0..n).fold(x, |acc, _| f(acc))
 }
 

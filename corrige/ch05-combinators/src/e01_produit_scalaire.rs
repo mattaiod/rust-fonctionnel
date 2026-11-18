@@ -30,6 +30,10 @@ pub fn produit_scalaire_imperatif(a: &[i64], b: &[i64]) -> Option<i64> {
 ///   `condition.then(|| valeur)` rend `Some(valeur)` si la condition est vraie, `None` sinon (la closure n'est
 ///   appelée que dans le premier cas).
 pub fn produit_scalaire(a: &[i64], b: &[i64]) -> Option<i64> {
+    // Vérifier les longueurs, puis parcourir les deux listes en parallèle, multiplier chaque paire et sommer.
+    // Le test de longueur passe avant le `zip`, qui tronquerait en silence à la liste la plus courte.
+    // `then` prend une closure : le parcours n'a lieu que si les longueurs sont égales.
+    // `zip(b)` accepte la slice directement : `&[i64]` implémente `IntoIterator`.
     (a.len() == b.len()).then(|| a.iter().zip(b).map(|(x, y)| x * y).sum())
 }
 

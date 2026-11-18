@@ -36,6 +36,9 @@ pub fn appliquer_hausse_imperatif(panier: &mut Panier, pourcent: u64) {
 ///   ``E0594: cannot assign to `article.prix_centimes`, as `article` is not declared as mutable`` : ne modifiez pas
 ///   `article`, construisez `Article { prix_centimes: …, ..article }` (le `..article` en dernier).
 pub fn augmenter(article: Article, pourcent: u64) -> Article {
+    // Outil : `Article { prix_centimes: …, ..article }`.
+    // `..article` déplace `nom` (une `String`) dans la nouvelle valeur : aucune copie, aucun `clone`.
+    // Multiplier avant de diviser : `prix / 100 * (100 + pourcent)` perdrait les centimes à la division entière.
     Article {
         prix_centimes: article.prix_centimes * (100 + pourcent) / 100,
         ..article
@@ -52,6 +55,9 @@ pub fn augmenter(article: Article, pourcent: u64) -> Article {
 ///   ni `clone()`.
 /// - Après avoir pris `panier.articles`, `..panier` reste permis : il ne recopie que les autres champs.
 pub fn appliquer_hausse(panier: Panier, pourcent: u64) -> Panier {
+    // Outils : `into_iter()`, `map(|article| augmenter(…))`, `collect()`, puis `..panier`.
+    // `into_iter()` consomme `panier.articles` : chaque `Article` est donné à `augmenter`, sans copie.
+    // Après ce déplacement partiel, `..panier` ne reprend que `client` et `code_promo`, encore intacts.
     Panier {
         articles: panier
             .articles

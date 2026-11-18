@@ -35,6 +35,9 @@ pub fn chercher_imperatif(triee: &[i64], cible: i64) -> Option<usize> {
 /// - `&triee[..milieu]` et `&triee[milieu + 1..]` sont deux sous-slices, sans copie. `let milieu = …;` est permis (pas
 ///   de `mut`).
 pub fn chercher(triee: &[i64], cible: i64) -> Option<usize> {
+    // Liste vide : rien. Sinon, comparer le milieu à la cible et recommencer sur la bonne moitié ; à droite, décaler l'index trouvé.
+    // Cas de base : `[]`. Les deux appels récursifs travaillent sur une moitié qui exclut `milieu` : la taille
+    // diminue à chaque appel et finit à zéro, donc ça termine. Comme la liste n'est pas vide, `triee[milieu]` existe.
     match triee {
         [] => None,
         _ => {
@@ -42,6 +45,7 @@ pub fn chercher(triee: &[i64], cible: i64) -> Option<usize> {
             match triee[milieu].cmp(&cible) {
                 Ordering::Equal => Some(milieu),
                 Ordering::Greater => chercher(&triee[..milieu], cible),
+                // La moitié droite commence à `milieu + 1` : on ajoute ce décalage à l'index trouvé, dans l'`Option`.
                 Ordering::Less => chercher(&triee[milieu + 1..], cible).map(|i| milieu + 1 + i),
             }
         }

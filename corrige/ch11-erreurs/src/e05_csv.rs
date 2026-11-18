@@ -60,6 +60,7 @@ impl fmt::Display for ErreurLigne {
     ///   passez les champs en arguments, `write!(f, "... {} ...", self.numero, ...)`. `self.erreur` s'affiche avec
     ///   `{}` grâce au `Display` écrit juste au-dessus.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // `{}` sur `self.erreur` délègue au `Display` d'`ErreurMesure` : la phrase de la cause est écrite une fois.
         write!(f, "ligne {} : {}", self.numero, self.erreur)
     }
 }
@@ -75,6 +76,8 @@ impl Error for ErreurLigne {}
 ///   `"NaN"` se parse très bien : testez `is_finite()` ensuite.
 /// - Le motif donne des `&&str` : `capteur: c` donne `E0308 … expected String, found &&str`, d'où `c.to_string()`.
 pub fn lire_mesure(ligne: &str) -> Result<Mesure, ErreurMesure> {
+    // On `trim` chaque champ une fois, avant le `match` : les tests qui suivent travaillent sur du propre.
+    // Le motif de tranche `[capteur, valeur]` exige exactement deux champs ; tout autre nombre tombe dans `_`.
     let champs: Vec<&str> = ligne.split(',').map(str::trim).collect();
     match champs.as_slice() {
         [capteur, valeur] => {
@@ -84,6 +87,7 @@ pub fn lire_mesure(ligne: &str) -> Result<Mesure, ErreurMesure> {
             let valeur: f64 = valeur
                 .parse()
                 .map_err(|_| ErreurMesure::ValeurIllisible(valeur.to_string()))?;
+            // `"NaN"` et `"inf"` passent `parse` : sans ce test, une valeur non finie entrerait dans les mesures.
             if valeur.is_finite() {
                 Ok(Mesure {
                     capteur: capteur.to_string(),
@@ -108,6 +112,8 @@ pub fn lire_mesure(ligne: &str) -> Result<Mesure, ErreurMesure> {
 ///   côté, les `Err` de l'autre.
 /// - `enumerate()` avant de sauter l'en-tête et de filtrer les lignes vides, et `+ 1` : les numéros commencent à 1.
 pub fn valider_csv(contenu: &str) -> Result<Vec<Mesure>, Vec<ErreurLigne>> {
+    // `enumerate` avant `skip` et `filter` : chaque ligne garde son index dans le fichier, donc le bon numéro.
+    // Contrairement à `collect::<Result<Vec<_>, _>>()`, `partition` ne s'arrête pas à la première erreur.
     let (bonnes, mauvaises): (Vec<_>, Vec<_>) = contenu
         .lines()
         .enumerate()
@@ -120,6 +126,7 @@ pub fn valider_csv(contenu: &str) -> Result<Vec<Mesure>, Vec<ErreurLigne>> {
             })
         })
         .partition(Result::is_ok);
+    // Les deux `Vec` contiennent encore des `Result` : `filter_map(Result::ok)` ou `Result::err` les déballe.
     if mauvaises.is_empty() {
         Ok(bonnes.into_iter().filter_map(Result::ok).collect())
     } else {

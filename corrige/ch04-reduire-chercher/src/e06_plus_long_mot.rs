@@ -19,6 +19,9 @@
 ///   : découpez `texte` lui-même.
 /// - Aucune durée de vie à écrire : avec un seul paramètre référence, Rust sait que le `&str` rendu vient de `texte`.
 pub fn plus_long_mot(texte: &str) -> Option<&str> {
+    // `reduce` démarre sur le premier mot et rend `None` sur un texte sans mot : le cas vide est porté par le type.
+    // Le `>` strict garde le premier en cas d'égalité ; avec `>=` (comme `max_by_key`), on rendrait le dernier.
+    // Variante : `texte.split_whitespace().rev().max_by_key(|mot| mot.chars().count())`.
     texte.split_whitespace().reduce(|meilleur, mot| {
         if mot.chars().count() > meilleur.chars().count() {
             mot

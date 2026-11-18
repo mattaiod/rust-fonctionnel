@@ -26,6 +26,9 @@ pub fn mots_longs_imperatif(texte: &str, longueur_min: usize) -> Vec<String> {
 /// - `mot.len()` compile mais compte des octets : le test `meme_resultat_que_l_imperatif` échoue sur les accents.
 ///   Comptez avec `chars().count()`.
 pub fn mots_longs(texte: &str, longueur_min: usize) -> Vec<String> {
+    // Outils : `split_whitespace`, `filter`, `map`, `collect`.
+    // On filtre avant de convertir : seuls les mots gardés sont alloués en `String`.
+    // `map(str::to_string)` passe un chemin de fonction à la place de la closure `|mot| mot.to_string()`.
     texte
         .split_whitespace()
         .filter(|mot| mot.chars().count() >= longueur_min)

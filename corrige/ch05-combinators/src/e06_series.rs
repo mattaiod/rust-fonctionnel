@@ -16,6 +16,8 @@
 ///   `windows` est une méthode de **slice**. Appelez-la sur `valeurs`, sans `iter()` avant.
 /// - Chaque fenêtre est une petite slice `&[i64]` de deux éléments : on l'indexe comme un tableau.
 pub fn variations(valeurs: &[i64]) -> Vec<i64> {
+    // `windows(2)` donne chaque paire de voisins sans index à gérer ; avec 0 ou 1 valeur, aucune fenêtre.
+    // Chaque fenêtre a exactement 2 éléments : `paire[1]` ne peut pas paniquer.
     valeurs
         .windows(2)
         .map(|paire| paire[1] - paire[0])
@@ -32,6 +34,8 @@ pub fn variations(valeurs: &[i64]) -> Vec<i64> {
 /// - Si le compilateur dit `` error[E0277]: a value of type `Vec<i64>` cannot be built from an iterator over elements
 ///   of type `&mut i64` `` : vous rendez `Some(total)`, rendez `Some(*total)`.
 pub fn sommes_cumulees(valeurs: &[i64]) -> Vec<i64> {
+    // `scan` transporte `total` d'un élément au suivant et émet une valeur par étape ; `fold` ne rend que la dernière.
+    // La closure rend `Some(*total)`, une copie, pas la référence `&mut`. Rendre `None` arrêterait le `scan`.
     valeurs
         .iter()
         .scan(0, |total, valeur| {
@@ -48,6 +52,8 @@ pub fn sommes_cumulees(valeurs: &[i64]) -> Vec<i64> {
 ///   pas une slice. `let caracteres: Vec<char> = texte.chars().collect();` d'abord (un `let` sans `mut` est permis).
 /// - `collect()` sait fabriquer une `String` à partir d'un itérateur de `String` (celles que rend `format!`).
 pub fn compresser(texte: &str) -> String {
+    // `chunk_by` regroupe les caractères égaux qui se suivent ; il travaille sur une slice, d'où le `Vec<char>`.
+    // Une plage n'est jamais vide : `plage[0]` ne panique pas. `collect` concatène les `String` de `format!`.
     let caracteres: Vec<char> = texte.chars().collect();
     caracteres
         .chunk_by(|a, b| a == b)

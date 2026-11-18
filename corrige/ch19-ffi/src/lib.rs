@@ -26,24 +26,31 @@ mod capteurs {
     /// moyenne(valeurs: list[float]) -> float | None
     #[pyfunction]
     fn moyenne(valeurs: Vec<f64>) -> Option<f64> {
+        // PyO3 convertit la `list` Python en `Vec<f64>` à l'appel (une copie), et `Option<f64>` revient en `float`
+        // ou `None`. Le test `is_empty` évite un `NaN` sur une liste vide.
         (!valeurs.is_empty()).then(|| valeurs.iter().sum::<f64>() / valeurs.len() as f64)
     }
 
     /// min(valeurs: list[float]) -> float | None
     #[pyfunction]
     fn min(valeurs: Vec<f64>) -> Option<f64> {
+        // Du Rust ordinaire : PyO3 fait les conversions autour, le corps ne voit aucun objet Python.
         valeurs.iter().copied().reduce(f64::min)
     }
 
     /// max(valeurs: list[float]) -> float | None
     #[pyfunction]
     fn max(valeurs: Vec<f64>) -> Option<f64> {
+        // Même chose avec `f64::max`.
         valeurs.iter().copied().reduce(f64::max)
     }
 
     /// stats(valeurs: list[float]) -> dict, par exemple {"moyenne": 2.0, "min": 1.0, "max": 3.0}
     #[pyfunction]
     fn stats(valeurs: Vec<f64>) -> HashMap<&'static str, Option<f64>> {
+        // `#[pyfunction]` laisse la fonction appelable depuis Rust : on réutilise `moyenne`, `min` et `max`.
+        // `clone()` car chacune prend son `Vec` par valeur ; le dernier appel reçoit l'original.
+        // Le `HashMap` devient un `dict` Python, les `None` compris.
         HashMap::from([
             ("moyenne", moyenne(valeurs.clone())),
             ("min", min(valeurs.clone())),

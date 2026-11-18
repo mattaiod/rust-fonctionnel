@@ -19,6 +19,9 @@ use std::thread;
 
 /// Le nombre total de mesures, un thread par lot.
 pub fn compter_mesures(lots: Vec<Vec<f64>>) -> usize {
+    // `Arc::clone` avant le `move` : chaque thread possède son pointeur vers le même `Mutex`.
+    // Le verrou n'est tenu que pour le `+=` : le `MutexGuard` temporaire disparaît à la fin de la closure.
+    // `collect` lance tous les threads avant le premier `join`, et on ne lit le total qu'une fois tous finis.
     let total = Arc::new(Mutex::new(0));
     let threads: Vec<_> = lots
         .into_iter()

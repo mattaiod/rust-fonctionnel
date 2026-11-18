@@ -46,6 +46,10 @@ pub fn email_du_parrain_naif(annuaire: &Annuaire, nom: &str) -> String {
 /// - Le `'a` de la signature dit que l'email rendu est emprunté à l'annuaire, pas à `nom`. Sans lui : `error[E0106]:
 ///   missing lifetime specifier`.
 pub fn email_du_parrain<'a>(annuaire: &'a Annuaire, nom: &str) -> Option<&'a str> {
+    // But : les quatre étapes à plat, sans `if`, sans `match`, sans `?`.
+    // Chaque `and_then` ne s'exécute que si l'étape d'avant a trouvé quelque chose : le premier `None` saute la suite.
+    // `as_deref()` passe d'une `Option<String>` empruntée à une `Option<&str>`, sans cloner. La lifetime `'a` dit
+    // que le `&str` rendu vit dans l'annuaire, pas dans `nom`.
     annuaire
         .get(nom)
         .and_then(|utilisateur| utilisateur.parrain.as_deref())
@@ -59,6 +63,9 @@ pub fn email_du_parrain<'a>(annuaire: &'a Annuaire, nom: &str) -> Option<&'a str
 /// - `?` sur une `Option` : si elle est vide, la fonction rend `None` tout de suite. Permis ici parce que la fonction
 ///   rend elle-même une `Option`. Les `as_deref()` de la version précédente restent nécessaires.
 pub fn email_du_parrain_avec_q<'a>(annuaire: &'a Annuaire, nom: &str) -> Option<&'a str> {
+    // But : une ligne par étape, chacune terminée par `?`.
+    // `?` sur une `Option` rend `None` tout de suite si la valeur manque. Il n'est permis que parce que la fonction
+    // rend elle aussi une `Option`. Même logique que la chaîne d'`and_then`, écrite ligne par ligne.
     let utilisateur = annuaire.get(nom)?;
     let parrain = utilisateur.parrain.as_deref()?;
     let fiche = annuaire.get(parrain)?;
@@ -87,6 +94,10 @@ pub fn email_du_parrain_explique<'a>(
     annuaire: &'a Annuaire,
     nom: &str,
 ) -> Result<&'a str, Introuvable> {
+    // But : chaque absence devient l'erreur qui la nomme.
+    // `ok_or` change chaque `Option` en `Result` en nommant l'absence, puis `?` propage la première erreur.
+    // Les variantes sont des valeurs simples : `ok_or` suffit. `ok_or_else` servirait pour une erreur coûteuse à
+    // fabriquer (une `String`, un `format!`), qu'on ne veut construire qu'en cas d'échec.
     let utilisateur = annuaire.get(nom).ok_or(Introuvable::Utilisateur)?;
     let parrain = utilisateur
         .parrain

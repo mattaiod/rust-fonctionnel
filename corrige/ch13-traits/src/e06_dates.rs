@@ -12,6 +12,7 @@ use std::fmt;
 
 /// `true` si `annee` est bissextile.
 pub fn est_bissextile(annee: i32) -> bool {
+    // Une expression booléenne suffit. Le `|| annee % 400 == 0` rattrape les siècles exclus juste avant.
     (annee % 4 == 0 && annee % 100 != 0) || annee % 400 == 0
 }
 
@@ -22,6 +23,8 @@ pub fn est_bissextile(annee: i32) -> bool {
 ///   `E0004 non-exhaustive patterns: 0_u32 and 13_u32..=u32::MAX not covered`. Un dernier bras `_ => 0`. Pour
 ///   février, une garde `2 if ... =>`.
 pub fn jours_dans_mois(annee: i32, mois: u32) -> u32 {
+    // Les bras sont testés dans l'ordre : la garde `2 if …` passe avant `2 =>`.
+    // `_ => 0` fait qu'un mois invalide n'a aucun jour, et `valide` le refuse sans test de plus.
     match mois {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
@@ -48,6 +51,7 @@ impl Date {
     ///   `bool::then_some`.
     /// - Le jour 0 n'existe pas : vérifiez les deux bornes.
     pub fn valide(annee: i32, mois: u32, jour: u32) -> Option<Date> {
+        // `then_some` évalue son argument dans tous les cas : sans effet ici, construire une `Date` ne coûte rien.
         (jour >= 1 && jour <= jours_dans_mois(annee, mois)).then_some(Date { annee, mois, jour })
     }
 
@@ -59,6 +63,7 @@ impl Date {
     /// - `self.jour += 1` donne `E0594 cannot assign to self.jour, which is behind a & reference` : rendez une
     ///   nouvelle `Date`. Trois cas : même mois, mois suivant, année suivante.
     pub fn lendemain(&self) -> Date {
+        // `..*self` copie les champs non cités (`Date` est `Copy`). Trois cas, du plus courant au plus rare.
         if self.jour < jours_dans_mois(self.annee, self.mois) {
             Date {
                 jour: self.jour + 1,
@@ -81,6 +86,7 @@ impl Date {
 
     /// Toutes les dates de `self` à `fin`, bornes comprises (aucune si `fin` est avant `self`).
     pub fn jusqu_a(self, fin: Date) -> PlageDates {
+        // Prendre `self` par valeur ne coûte rien : `Date` est `Copy`, l'appelant garde la sienne.
         PlageDates {
             courante: self,
             fin,
@@ -106,6 +112,7 @@ impl fmt::Display for Date {
     /// **Aide Rust** (ch00, section 1)
     /// - `{}` écrit `2026-3-5` : `{:02}` et `{:04}` complètent avec des zéros.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // `Display` s'écrit toujours à la main : la std n'a pas de `derive(Display)`.
         write!(f, "{:04}-{:02}-{:02}", self.annee, self.mois, self.jour)
     }
 }
@@ -126,6 +133,8 @@ impl Iterator for PlageDates {
     /// - Piège qui compile : avancer puis rendre `self.courante` saute la première date. Gardez la date à rendre
     ///   (`Date` est `Copy`), avancez, puis rendez-la.
     fn next(&mut self) -> Option<Date> {
+        // `then` et pas `then_some` : la closure, qui avance la date, ne tourne que si la plage n'est pas finie.
+        // On garde la date à rendre avant d'avancer, sinon la première serait sautée.
         (self.courante <= self.fin).then(|| {
             let rendue = self.courante;
             self.courante = rendue.lendemain();
@@ -141,6 +150,8 @@ impl Iterator for PlageDates {
 ///   `E0599 no method named filter found … impl IntoIterator<Item = Date> is not an iterator`. Appelez `into_iter()`
 ///   d'abord.
 pub fn fins_de_mois(dates: impl IntoIterator<Item = Date>) -> Vec<Date> {
+    // `impl IntoIterator` accepte une `PlageDates`, un `Vec<Date>`, un `filter`… Une fin de mois est la date
+    // dont le lendemain change de mois.
     dates
         .into_iter()
         .filter(|d| d.lendemain().mois != d.mois)

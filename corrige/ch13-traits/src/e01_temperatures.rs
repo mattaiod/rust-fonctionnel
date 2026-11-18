@@ -46,18 +46,22 @@ impl From<Fahrenheit> for Celsius {
     /// - On rend un `Celsius` : la formule seule donne `E0308 … expected Celsius, found f64`. Emballez-la dans
     ///   `Celsius(...)`. Même chose pour les deux autres `from`.
     fn from(f: Fahrenheit) -> Self {
+        // But : la formule de la version naïve, à un seul endroit.
+        // On implémente `From`, jamais `Into` : la std fournit `Into<Celsius> for Fahrenheit` à partir de ce `From`.
         Celsius((f.0 - 32.0) * 5.0 / 9.0)
     }
 }
 
 impl From<Kelvin> for Celsius {
     fn from(k: Kelvin) -> Self {
+        // Même schéma : une formule, un seul endroit.
         Celsius(k.0 - 273.15)
     }
 }
 
 impl From<Celsius> for Fahrenheit {
     fn from(c: Celsius) -> Self {
+        // Le sens inverse est un `impl` à part : `From` ne vaut que dans le sens où on l'écrit.
         Fahrenheit(c.0 * 9.0 / 5.0 + 32.0)
     }
 }
@@ -87,6 +91,9 @@ impl From<Celsius> for Fahrenheit {
 ///   `E0599 the method max exists for struct Celsius, but its trait bounds were not satisfied … Celsius: Ord`. Un
 ///   `f64` n'est que `PartialOrd` (ch. 10) : un `if` avec `>=` fait l'affaire.
 pub fn plus_chaude(a: impl Into<Celsius>, b: impl Into<Celsius>) -> Celsius {
+    // But : convertir les deux, comparer. Aucune formule ici.
+    // `impl Into<Celsius>` en argument est un générique anonyme, résolu à la compilation (pas de `dyn`).
+    // Un `Celsius` passe aussi, grâce à `impl<T> From<T> for T`. `>=` vient du `PartialOrd` dérivé.
     let (a, b) = (a.into(), b.into());
     if a >= b { a } else { b }
 }

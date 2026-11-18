@@ -18,6 +18,7 @@ use rayon::prelude::*;
 
 /// La moyenne de chaque série, calculées en parallèle.
 pub fn moyennes(series: &[Vec<f64>]) -> Vec<Option<f64>> {
+    // `par_iter` répartit les séries entre les threads du pool de rayon ; `collect` garde l'ordre d'origine.
     series
         .par_iter()
         .map(|s| (!s.is_empty()).then(|| s.iter().sum::<f64>() / s.len() as f64))
@@ -26,6 +27,8 @@ pub fn moyennes(series: &[Vec<f64>]) -> Vec<Option<f64>> {
 
 /// La somme des carrés, en parallèle.
 pub fn somme_des_carres(valeurs: &[f64]) -> f64 {
+    // En parallèle, les additions se font dans un autre ordre : sur des `f64`, le résultat peut différer
+    // du calcul séquentiel dans les dernières décimales.
     valeurs.par_iter().map(|v| v * v).sum()
 }
 

@@ -25,7 +25,12 @@ pub fn est_interdit_imperatif(interdits: &[String], mot: &str) -> bool {
 ///
 /// Une closure qui rend `true` si `mot` fait partie de `interdits`.
 pub fn filtre_interdits(interdits: Vec<String>) -> impl Fn(&str) -> bool {
-    move |mot| interdits.iter().any(|interdit| interdit == mot)
+    move |mot| {
+        // Outils : `interdits.iter()`, `any(|interdit| …)`.
+        // `iter()` emprunte la liste capturée sans la consommer : la closure reste `Fn` et resservira à chaque appel.
+        // `any` s'arrête au premier mot égal.
+        interdits.iter().any(|interdit| interdit == mot)
+    }
 }
 
 /// Version impérative. Ne pas modifier.
@@ -47,6 +52,8 @@ pub fn censurer_imperatif(texte: &str, interdits: Vec<String>) -> Vec<&str> {
 ///
 /// Les mots de `texte` qui ne sont pas interdits, dans l'ordre.
 pub fn censurer(texte: &str, interdits: Vec<String>) -> Vec<&str> {
+    // Outils : `filtre_interdits(…)` dans un `let`, `split_whitespace()`, `filter`, `collect()`.
+    // La closure est fabriquée une seule fois, hors de la chaîne : la liste y est déplacée une fois pour toutes.
     let est_interdit = filtre_interdits(interdits);
     texte
         .split_whitespace()

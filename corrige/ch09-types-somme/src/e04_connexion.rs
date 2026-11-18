@@ -54,6 +54,10 @@ pub enum Evenement {
 /// - État et événement sont reçus par valeur : `Succes { session }` déplace la `String` dans `Connecte { session }`,
 ///   sans `clone`.
 pub fn reagir(connexion: Connexion, evenement: Evenement) -> Connexion {
+    // But : un seul `match` sur le couple ; une garde `if` pour la limite de tentatives.
+    // L'ordre des bras compte : `Couper` passe en premier pour valoir dans tous les états, et le bras gardé
+    // (limite atteinte) avant celui qui incrémente. Le couple est pris par valeur : `session` passe de l'événement
+    // à l'état sans clone. Le dernier bras laisse l'état intact pour toutes les combinaisons sans effet.
     match (connexion, evenement) {
         (_, Evenement::Couper) => Connexion::Deconnecte,
         (Connexion::Deconnecte, Evenement::Demarrer) => Connexion::EnConnexion { tentative: 1 },
@@ -76,6 +80,8 @@ pub fn reagir(connexion: Connexion, evenement: Evenement) -> Connexion {
 /// - Si le compilateur dit `` error[E0631]: type mismatch in function arguments … expected function signature
 ///   `fn(Connexion, &Evenement) -> _` `` : `iter()` prête les événements, `reagir` les veut par valeur → `into_iter()`.
 pub fn rejouer(evenements: Vec<Evenement>) -> Connexion {
+    // But : une ligne.
+    // `reagir` a la forme qu'attend `fold` : `(accumulateur, élément) -> accumulateur`. On la passe par son nom.
     evenements.into_iter().fold(Connexion::Deconnecte, reagir)
 }
 
@@ -90,6 +96,9 @@ pub fn rejouer(evenements: Vec<Evenement>) -> Connexion {
 /// - Si le compilateur dit `` error[E0027]: pattern does not mention fields `tentative`, `session` `` : nommez-les, ou
 ///   terminez le motif par `..`.
 pub fn depuis_naive(naive: ConnexionNaive) -> Option<Connexion> {
+    // But : un `match` sur les quatre champs, gardes comprises.
+    // Les motifs de `struct` fixent des valeurs (`false`, `0`, `None`) et lient le reste. La garde refuse une
+    // connexion en cours à la tentative 0 ; `_ => None` refuse toutes les autres combinaisons incohérentes.
     match naive {
         ConnexionNaive {
             connecte: false,

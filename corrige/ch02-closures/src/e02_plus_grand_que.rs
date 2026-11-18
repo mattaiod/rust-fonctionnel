@@ -21,7 +21,11 @@ pub fn garder_au_dessus_imperatif(nombres: &[i64], seuil: i64) -> Vec<i64> {
 /// **Aide Rust** (ch00, section 4)
 /// - Si le compilateur dit ``E0308: expected `&i64`, found `i64` `` : `n` est une référence, comparez `*n` à `seuil`.
 pub fn plus_grand_que(seuil: i64) -> impl Fn(&i64) -> bool {
-    move |n: &i64| *n > seuil
+    move |n: &i64| {
+        // Une comparaison ; `n` est une référence, `*n` la valeur.
+        // La closure lit `seuil` sans le modifier : elle est `Fn`, donc acceptée partout où `FnMut` est demandé.
+        *n > seuil
+    }
 }
 
 /// Version fonctionnelle : les nombres strictement plus grands que `seuil`.
@@ -35,6 +39,9 @@ pub fn plus_grand_que(seuil: i64) -> impl Fn(&i64) -> bool {
 ///   ``E0277: a value of type `Vec<i64>` cannot be built from an iterator over elements of type `&i64` `` : même
 ///   remède, `.copied()`.
 pub fn garder_au_dessus(nombres: &[i64], seuil: i64) -> Vec<i64> {
+    // Outils : `iter()`, `copied()`, `filter(plus_grand_que(seuil))`, `collect()`.
+    // `copied()` avant `filter` : le prédicat reçoit un `&i64`, exactement le type de `plus_grand_que`.
+    // Le même `copied()` sert au `collect`, qui veut des `i64`.
     nombres
         .iter()
         .copied()

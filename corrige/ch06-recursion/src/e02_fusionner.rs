@@ -44,6 +44,10 @@ pub fn fusionner_imperatif(a: &[i64], b: &[i64]) -> Vec<i64> {
 /// - Si le compilateur dit `` error[E0308]: mismatched types … expected `&i64`, found `i64` `` : comparez `*premier <=
 ///   reste[0]`.
 pub fn est_triee(liste: &[i64]) -> bool {
+    // Zéro ou un élément : trié (un seul motif pour les deux cas). Sinon, comparer le premier au deuxième et recommencer sur le reste.
+    // Le second bras ne voit que des listes d'au moins deux éléments (le premier a pris les plus courtes) :
+    // `reste[0]` ne peut pas paniquer. `&&` court-circuite : on s'arrête à la première paire mal rangée.
+    // Variante sans `reste[0]` : le motif `[a, b, ..]` compare `a <= b`, puis `est_triee(&liste[1..])`.
     match liste {
         [] | [_] => true,
         [premier, reste @ ..] => *premier <= reste[0] && est_triee(reste),
@@ -60,6 +64,10 @@ pub fn est_triee(liste: &[i64]) -> bool {
 /// - Si le compilateur dit `` expected `Vec<i64>`, found `&[i64]` `` : une slice n'est pas un `Vec`, `b.to_vec()` la
 ///   copie.
 pub fn fusionner(a: &[i64], b: &[i64]) -> Vec<i64> {
+    // Si une liste est vide, l'autre est le résultat. Sinon, le plus petit des deux premiers passe devant la fusion de ce qui reste.
+    // Les deux premiers bras sont les cas de base. Chaque appel retire un élément de `a` ou de `b` : on y arrive.
+    // La garde `x <= y` fait passer `a` d'abord en cas d'égalité, comme la version impérative (fusion stable).
+    // Le dernier bras n'a pas de garde : les bras sont testés dans l'ordre, il ne reste que le cas `y < x`.
     match (a, b) {
         ([], _) => b.to_vec(),
         (_, []) => a.to_vec(),

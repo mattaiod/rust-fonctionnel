@@ -44,6 +44,7 @@ pub const JOURNEE: u16 = 24 * 60;
 impl Creneau {
     /// Le seul chemin pour construire un créneau.
     pub fn nouveau(debut: u16, fin: u16) -> Result<Creneau, ErreurReservation> {
+        // `HorsJournee` passe avant `CreneauVide` : si les deux s'appliquent, l'ordre des bras décide.
         match (debut, fin) {
             (_, fin) if fin > JOURNEE => Err(ErreurReservation::HorsJournee),
             (debut, fin) if debut >= fin => Err(ErreurReservation::CreneauVide),
@@ -65,6 +66,7 @@ impl Creneau {
     /// - Les créneaux sont des intervalles `[debut, fin[` : 10 h-11 h et 11 h-12 h ne se touchent pas. Des `<`
     ///   stricts.
     pub fn chevauche(&self, autre: &Creneau) -> bool {
+        // `[a, b[` et `[c, d[` se chevauchent si `a < d` et `c < b`. Les `<` stricts laissent passer le bout à bout.
         self.debut < autre.fin && autre.debut < self.fin
     }
 }
@@ -79,6 +81,8 @@ impl Planning {
     /// - Le nouveau planning : les anciennes réservations clonées (`iter().cloned()`) suivies de la nouvelle
     ///   (`chain`).
     pub fn reserver(&self, reservation: Reservation) -> Result<Planning, ErreurReservation> {
+        // `find` s'arrête au premier conflit ; on le clone parce que l'erreur doit posséder sa `Reservation`.
+        // En cas de succès, un nouveau `Planning` : `self` ne change pas.
         match self.reservations.iter().find(|existante| {
             existante.salle == reservation.salle
                 && existante.creneau.chevauche(&reservation.creneau)
@@ -103,6 +107,7 @@ impl Planning {
     ///   `E0277 a value of type Vec<Reservation> cannot be built from an iterator over elements of type &Reservation`.
     ///   `.cloned()` avant.
     pub fn annuler(&self, salle: &str, creneau: &Creneau) -> Planning {
+        // `filter` avant `cloned` : on ne clone que ce qu'on garde.
         Planning {
             reservations: self
                 .reservations
@@ -115,6 +120,7 @@ impl Planning {
 
     /// Les réservations d'une salle, de la plus tôt à la plus tard.
     pub fn reservations_de(&self, salle: &str) -> Vec<&Reservation> {
+        // On trie des `&Reservation` : rien n'est cloné, le résultat emprunte `self`.
         pf_outils::trier_par(
             self.reservations.iter().filter(|r| r.salle == salle),
             |a, b| a.creneau.debut.cmp(&b.creneau.debut),
@@ -135,6 +141,9 @@ impl Planning {
     ///   (`E0308 … expected Creneau, found Result<Creneau, ErreurReservation>`).
     /// - `|(curseur, mut libres), creneau|` est permis : c'est le `mut` d'un accumulateur de `fold`.
     pub fn creneaux_libres(&self, salle: &str, ouverture: Creneau) -> Vec<Creneau> {
+        // `curseur` est la première minute pas encore couverte. Une réservation qui commence avant le curseur
+        // (avant l'ouverture, par exemple) ne laisse aucun trou, puis le curseur saute à sa fin. Le dernier trou
+        // passe par `then_some` : une `Option` se parcourt comme 0 ou 1 élément, et `chain` prend tout `IntoIterator`.
         let (curseur, libres) = self
             .reservations_de(salle)
             .into_iter()
@@ -250,6 +259,7 @@ mod tests {
     fn refuse_un_chevauchement_dans_la_meme_salle() {
         // Turing réservée 9 h-11 h par Alice ; Bob demande Turing 10 h-12 h : refusé, et l'erreur désigne la
         // réservation d'Alice.
+        // On clone `alice` pour pouvoir la comparer ensuite à celle que contient l'erreur.
         let alice = reservation("Turing", h(9, 0), h(11, 0), "Alice");
         let planning = Planning::default().reserver(alice.clone()).unwrap();
         assert_eq!(
@@ -262,6 +272,7 @@ mod tests {
     #[ignore = "à écrire par l'élève"]
     fn meme_creneau_dans_deux_salles() {
         // Le même créneau dans deux salles différentes : les deux réservations passent.
+        // `and_then` enchaîne : la seconde réservation n'est tentée que si la première passe.
         let planning = Planning::default()
             .reserver(reservation("Turing", h(9, 0), h(10, 0), "Alice"))
             .and_then(|p| p.reserver(reservation("Lovelace", h(9, 0), h(10, 0), "Bob")))
@@ -284,6 +295,7 @@ mod tests {
     #[ignore = "à écrire par l'élève"]
     fn reserver_ne_modifie_pas_le_planning_d_origine() {
         // Après une réservation réussie, l'ancien planning est inchangé (toujours vide, par exemple).
+        // `avant` est encore là et vide après `reserver` : la preuve que rien n'a été modifié en place.
         let avant = Planning::default();
         let apres = avant
             .reserver(reservation("Turing", h(9, 0), h(10, 0), "Alice"))
@@ -300,6 +312,7 @@ mod tests {
     #[ignore = "à écrire par l'élève"]
     fn reservations_triees_par_heure() {
         // Réserver 14 h, puis 9 h, puis 11 h : `reservations_de` les rend dans l'ordre 9 h, 11 h, 14 h.
+        // `try_fold` enchaîne les `reserver` et s'arrête à la première `Err`.
         let planning = [h(14, 0), h(9, 0), h(11, 0)]
             .into_iter()
             .try_fold(Planning::default(), |p, debut| {
@@ -319,6 +332,7 @@ mod tests {
     fn annuler_libere_le_creneau() {
         // Annuler la réservation d'Alice permet à Bob de prendre le même créneau ; annuler un créneau qui n'existe
         // pas ne change rien.
+        // On vérifie les deux cas : annuler un créneau absent rend un planning égal à l'original.
         let alice = reservation("Turing", h(9, 0), h(10, 0), "Alice");
         let planning = Planning::default().reserver(alice.clone()).unwrap();
         assert_eq!(
@@ -351,6 +365,7 @@ mod tests {
         // Ouverture 8 h-18 h ; réservations 7 h-9 h (déborde avant l'ouverture), 12 h-13 h, 13 h-14 h et 17 h-20 h
         // (déborde après) ; une réservation dans une autre salle ne compte pas.
         // Libres attendus : 9 h-12 h et 14 h-17 h.
+        // Les réservations sont données dans le désordre : `creneaux_libres` doit s'appuyer sur le tri.
         let planning = [
             reservation("Turing", h(12, 0), h(13, 0), "Alice"),
             reservation("Turing", h(7, 0), h(9, 0), "Bob"),

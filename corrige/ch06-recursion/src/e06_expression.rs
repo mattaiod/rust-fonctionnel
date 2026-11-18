@@ -22,6 +22,9 @@ pub enum Expr {
 ///   corrige en `*n`.
 /// - Les sous-expressions sont des `&Box<Expr>` : `evaluer(a)` les accepte telles quelles, sans étoile.
 pub fn evaluer(expr: &Expr) -> i64 {
+    // Un bras par variante, un appel récursif par sous-expression. `Nombre` est le cas de base : chaque appel
+    // descend dans une sous-expression plus petite. Le `match` est exhaustif : ajoutez une variante à `Expr` et
+    // le compilateur vous montre chaque fonction à compléter.
     match expr {
         Expr::Nombre(n) => *n,
         Expr::Somme(a, b) => evaluer(a) + evaluer(b),
@@ -36,6 +39,7 @@ pub fn evaluer(expr: &Expr) -> i64 {
 /// - `n.to_string()` pour un nombre, `format!("({} + {})", …)` pour assembler. `"(" + …` ne compile pas :
 ///   `` error[E0369]: cannot add `String` to `&str` ``.
 pub fn afficher(expr: &Expr) -> String {
+    // Même plan qu'`evaluer`. Les parenthèses systématiques rendent le texte non ambigu sans gérer de priorités.
     match expr {
         Expr::Nombre(n) => n.to_string(),
         Expr::Somme(a, b) => format!("({} + {})", afficher(a), afficher(b)),

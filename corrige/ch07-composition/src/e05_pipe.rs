@@ -16,11 +16,15 @@
 /// - Si le compilateur dit `` error[E0308]: mismatched types … expected `String`, found `&String` `` : passez `texte` à
 ///   l'étape, pas `&texte`.
 pub fn pipe(depart: String, etapes: &[&dyn Fn(String) -> String]) -> String {
+    // `fold` transporte un état, ici le texte, d'une étape à la suivante ; sans étape, il rend `depart` tel quel.
+    // La `String` passe par valeur, sans `clone`. `etape` est un `&&dyn Fn` : l'appel marche quand même, car une
+    // référence vers un `Fn` implémente elle aussi `Fn`.
     etapes.iter().fold(depart, |texte, etape| etape(texte))
 }
 
 /// Le texte en majuscules.
 pub fn majuscules(texte: String) -> String {
+    // `to_uppercase` traite aussi les lettres accentuées (é → É).
     texte.to_uppercase()
 }
 
@@ -32,12 +36,17 @@ pub fn majuscules(texte: String) -> String {
 /// - Si le compilateur dit `error[E0282]: type annotations needed` sur un `collect()` suivi de `.join(…)` : précisez
 ///   `collect::<Vec<_>>()`. (`collect::<String>()` collerait les mots sans espace.)
 pub fn espaces_simples(texte: String) -> String {
+    // `split_whitespace` ignore les blancs du début et de la fin et regroupe les suites de blancs : il reste à
+    // recoller avec une espace. `join` est une méthode des slices, pas des iterators : d'où le `Vec` intermédiaire.
     texte.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// La transformation « entourer le texte de `bord` des deux côtés ».
 pub fn encadrer(bord: char) -> impl Fn(String) -> String {
-    move |texte| format!("{bord}{texte}{bord}")
+    move |texte| {
+        // Application partielle : `bord` est fixé à la fabrication, capturé par `move` (`char` est `Copy`).
+        format!("{bord}{texte}{bord}")
+    }
 }
 
 #[cfg(test)]

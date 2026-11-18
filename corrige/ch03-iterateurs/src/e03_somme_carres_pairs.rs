@@ -23,6 +23,9 @@ pub fn somme_carres_pairs_imperatif(nombres: &[i64]) -> i64 {
 /// - `sum()` devine son type grâce au retour `i64`. Si vous le rangez dans un `let s = … .sum();` et que rien
 ///   ensuite ne fixe le type de `s`, ``E0283: type annotations needed`` : écrivez `sum::<i64>()`.
 pub fn somme_carres_pairs(nombres: &[i64]) -> i64 {
+    // Outils : `filter`, `map`, `sum`.
+    // Un seul passage sur la liste, sans `Vec` intermédiaire : chaque nombre traverse `filter`, `map`, puis `sum`.
+    // Dans le `map`, `n * n` multiplie deux `&i64` : l'opérateur est défini et rend un `i64`.
     nombres.iter().filter(|n| *n % 2 == 0).map(|n| n * n).sum()
 }
 

@@ -25,6 +25,9 @@ pub fn garder_pairs_imperatif(nombres: &[i64]) -> Vec<i64> {
 ///   `.copied()`.
 /// - `into_iter()` sur un `&[i64]` donne AUSSI des `&i64` : il ne remplace pas `copied()`.
 pub fn garder_pairs(nombres: &[i64]) -> Vec<i64> {
+    // Outils : `iter()`, `filter(|n| …)`, `copied()`, `collect()`.
+    // `*n % 2` : une étoile suffit, car `%` est défini sur `&i64` ; il ne reste qu'une référence à retirer.
+    // `copied()` après `filter` ne copie que les nombres gardés ; placé avant, le prédicat recevrait un `&i64`.
     nombres.iter().filter(|n| *n % 2 == 0).copied().collect()
 }
 

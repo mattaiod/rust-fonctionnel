@@ -26,6 +26,9 @@ pub fn nettoyer_imperatif(texte: &str) -> Vec<String> {
 /// - Le paramètre est un `&&str` (une référence vers une `&str`) : `ligne.is_empty()` et `ligne.starts_with('#')`
 ///   marchent quand même, l'appel de méthode déréférence tout seul.
 pub fn est_utile(ligne: &&str) -> bool {
+    // Une ligne utile n'est pas vide et ne commence pas par `#`.
+    // Le paramètre est un `&&str` : `filter` prête chaque élément, et les éléments sont déjà des `&str`.
+    // Les méthodes s'appellent quand même directement, l'auto-deref traverse les deux `&`.
     !ligne.is_empty() && !ligne.starts_with('#')
 }
 
@@ -39,6 +42,9 @@ pub fn est_utile(ligne: &&str) -> bool {
 /// - Si le compilateur dit `` error[E0277]: a value of type `Vec<String>` cannot be built from an iterator over
 ///   elements of type `&str` `` : il manque l'étape qui fabrique les `String`.
 pub fn nettoyer(texte: &str) -> Vec<String> {
+    // Découper en lignes, puis enchaîner les étapes en passant des fonctions par leur nom (`str::…`, `est_utile`), sans écrire de `|…|`.
+    // `str::trim` et `str::to_lowercase` sont des fonctions qui prennent un `&str` : `map` les accepte comme une
+    // closure. L'ordre compte : sans `trim` avant le filtre, la ligne `  # note` passerait.
     texte
         .lines()
         .map(str::trim)

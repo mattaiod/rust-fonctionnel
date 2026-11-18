@@ -18,6 +18,9 @@ use crate::lire_capteur;
 
 /// Tous les capteurs, lus en même temps, valeurs dans l'ordre des `ids`.
 pub async fn lire_tous(ids: Vec<u32>) -> Vec<f64> {
+    // `tokio::spawn` confie chaque future au runtime dès l'appel ; le `collect` les lance toutes avant la première
+    // attente. Les `.await` dans l'ordre de la liste donnent cet ordre sans rallonger le temps total.
+    // `spawn` exige une future `'static` : `lire_capteur(id)` possède son `id`, ça passe.
     let taches: Vec<_> = ids
         .into_iter()
         .map(|id| tokio::spawn(lire_capteur(id)))

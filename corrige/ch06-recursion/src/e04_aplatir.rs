@@ -40,6 +40,10 @@ pub fn aplatir_imperatif(donnee: &Imbrique) -> Vec<i64> {
 ///   (chapitre 5).
 /// - `aplatir` se passe par son nom : elle prend un `&Imbrique`, exactement ce que donne `enfants.iter()`.
 pub fn aplatir(donnee: &Imbrique) -> Vec<i64> {
+    // Une valeur donne une liste d'un élément ; une liste donne la concaténation de ses éléments aplatis.
+    // `flat_map` aplatit chaque enfant et met bout à bout les `Vec` obtenus : la récursion passe par l'iterator.
+    // `aplatir` se passe par son nom, sans closure : `iter()` donne des `&Imbrique`, ce que la fonction prend.
+    // Pas de `Box` dans ce type : le `Vec` range déjà ses éléments sur le tas, la taille d'`Imbrique` est fixe.
     match donnee {
         Imbrique::Valeur(v) => vec![*v],
         Imbrique::Liste(enfants) => enfants.iter().flat_map(aplatir).collect(),

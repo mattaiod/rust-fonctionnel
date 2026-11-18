@@ -127,11 +127,13 @@ impl<E> Article<E> {
     /// - `self.titre` est une `String` qui reste dans l'article : on la prête. `E0308 … expected &str, found String`
     ///   propose `&self.titre`. Idem pour `texte`.
     pub fn titre(&self) -> &str {
+        // Commun à tous les états (`impl<E>`). On prête la `String` sous forme de `&str` : l'article la garde.
         &self.titre
     }
 
     /// Le texte, dans tous les états.
     pub fn texte(&self) -> &str {
+        // Même chose que `titre`.
         &self.texte
     }
 }
@@ -142,6 +144,8 @@ impl Article<Brouillon> {
     /// **Aide Rust** (ch00, section 5)
     /// - Le champ `titre` est une `String`, le paramètre une `&str` : `E0308 … expected String, found &str`.
     pub fn nouveau(titre: &str) -> Self {
+        // L'état est un vrai champ : `Brouillon` est une struct sans champ, de taille nulle.
+        // Plus besoin de `PhantomData`.
         Article {
             titre: titre.to_string(),
             texte: String::new(),
@@ -158,6 +162,9 @@ impl Article<Brouillon> {
     /// - Ici le type ne change pas, donc `..self` est permis pour recopier les autres champs (toujours en dernier
     ///   dans les accolades).
     pub fn rediger(self, ajout: &str) -> Self {
+        // But : le même brouillon, texte allongé.
+        // Le type ne change pas (`Self` reste `Article<Brouillon>`) : `..self` peut recopier `titre` et `etat`.
+        // `format!` fabrique un texte neuf au lieu de modifier l'ancien.
         Article {
             texte: format!("{}{ajout}", self.texte),
             ..self
@@ -171,6 +178,8 @@ impl Article<Brouillon> {
     ///   `E0308 … expected Article<EnRelecture>, found Article<Brouillon>`. Listez les trois champs, en déplaçant
     ///   `self.titre` et `self.texte`.
     pub fn soumettre(self, relecteur: &str) -> Article<EnRelecture> {
+        // Le type change : on liste les champs et on déplace `titre` et `texte`, sans copie (`self` nous appartient).
+        // Le relecteur entre dans l'état `EnRelecture` : la donnée n'existe que là où elle a un sens.
         Article {
             titre: self.titre,
             texte: self.texte,
@@ -188,11 +197,13 @@ impl Article<EnRelecture> {
     /// - Le relecteur est dans l'état : `self.etat.relecteur`. `self.relecteur` désigne la méthode elle-même :
     ///   `E0615 attempted to take value of method relecteur`.
     pub fn relecteur(&self) -> &str {
+        // Le relecteur vit dans l'état : cette méthode n'existe que sur les articles qui en ont un.
         &self.etat.relecteur
     }
 
     /// En relecture → brouillon (le relecteur est oublié : il faudra resoumettre).
     pub fn rejeter(self) -> Article<Brouillon> {
+        // `Brouillon` n'a pas de champ relecteur : le bug de la version naïve (relecteur oublié) ne peut pas s'écrire.
         Article {
             titre: self.titre,
             texte: self.texte,
@@ -207,6 +218,7 @@ impl Article<EnRelecture> {
     ///   donne `E0382 borrow of partially moved value: self`. Déplacez directement le champ `self.etat.relecteur`,
     ///   sans `to_string()` ni `clone()`.
     pub fn approuver(self) -> Article<Publie> {
+        // `self` est consommé, ses champs nous appartiennent : on déplace `self.etat.relecteur` au lieu de le cloner.
         Article {
             titre: self.titre,
             texte: self.texte,
@@ -220,6 +232,7 @@ impl Article<EnRelecture> {
 impl Article<Publie> {
     /// Qui a approuvé la publication.
     pub fn approuve_par(&self) -> &str {
+        // Même lecture que `relecteur`, sur l'état `Publie`.
         &self.etat.relecteur
     }
 
@@ -236,6 +249,8 @@ impl Article<Publie> {
     /// - Dans `filter(|m| ...)`, `m` est un `&&str` : `m != ""` donne `E0277 can't compare &str with str`.
     ///   `!m.is_empty()` évite la question.
     pub fn lien(&self) -> String {
+        // `to_lowercase` rend une `String` temporaire et les `&str` de `split` pointent dedans : `map(str::to_string)`
+        // les rend propriétaires avant `collect`. `filter` retire les morceaux vides (séparateurs voisins, ou en bord).
         let mots: Vec<String> = self
             .titre
             .to_lowercase()

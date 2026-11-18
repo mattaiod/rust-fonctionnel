@@ -43,6 +43,10 @@ pub fn partie_imperatif(coups: &[bool]) -> Score {
 ///   après.
 /// - `Score` est `Copy` : l'appelant garde son ancien score, aucun `clone()` à écrire.
 pub fn jouer_coup(score: Score, reussi: bool) -> Score {
+    // Un `if` qui rend un `Score { … }` dans chaque branche ; `..score` recopie les champs inchangés.
+    // Les deux branches rendent un `Score` neuf : `score` n'est jamais modifié.
+    // La série augmente avant le calcul des points, d'où `serie + 1` dans les deux champs.
+    // Dans le `else`, `..score` reprend `points` sans le réécrire.
     if reussi {
         Score {
             points: score.points + 10 * (score.serie + 1),
@@ -61,6 +65,9 @@ pub fn jouer_coup(score: Score, reussi: bool) -> Score {
 /// - Si le compilateur dit ``E0308: expected `bool`, found `&bool` `` : écrivez `|score, &reussi|`, ou passez
 ///   `*reussi` à `jouer_coup`.
 pub fn partie(coups: &[bool]) -> Score {
+    // Outils : `iter()`, `fold(Score::default(), |score, &reussi| …)`, `jouer_coup`.
+    // L'accumulateur du `fold` est l'état de la partie : chaque coup rend l'état suivant, sans `mut`.
+    // `|score, &reussi|` déballe le `&bool` de `iter()` directement dans le motif.
     coups
         .iter()
         .fold(Score::default(), |score, &reussi| jouer_coup(score, reussi))

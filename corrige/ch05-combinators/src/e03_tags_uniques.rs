@@ -40,6 +40,10 @@ pub fn tags_uniques_imperatif(articles: &[Article]) -> Vec<String> {
 /// - Si le compilateur dit `error[E0282]: type annotations needed` sur le premier `collect` : il ne sait pas quoi
 ///   fabriquer, dites-le : `collect::<BTreeSet<String>>()`.
 pub fn tags_uniques(articles: &[Article]) -> Vec<String> {
+    // Enchaîner les tags de tous les articles en une seule séquence, les ranger dans un ensemble trié, revenir en `Vec`.
+    // `flat_map` : chaque article donne un itérateur de tags, et les itérateurs sont enchaînés en une seule séquence.
+    // Le `BTreeSet` dédoublonne et trie d'un coup ; le second `collect` le parcourt dans l'ordre croissant.
+    // Variante qui ne copie que les tags uniques : des `&String` dans le `BTreeSet`, puis `cloned()` à la sortie.
     articles
         .iter()
         .flat_map(|article| article.tags.iter().cloned())

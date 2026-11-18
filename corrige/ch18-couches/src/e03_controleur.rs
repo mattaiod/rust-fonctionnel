@@ -52,6 +52,8 @@ pub async fn ajouter(
 
 /// `GET /capteurs/{id}/stats` → 200 et les statistiques en JSON, ou 404.
 pub async fn stats(State(repo): State<MesuresEnMemoire>, Path(id): Path<u32>) -> Response {
+    // Le handler ne calcule rien : `None` devient 404, `Some` devient 200 avec le JSON.
+    // `Json(stats)` marche parce que `StatsCapteur` dérive `Serialize`.
     match service::stats_capteur(&repo, id) {
         None => introuvable(),
         Some(stats) => Json(stats).into_response(),

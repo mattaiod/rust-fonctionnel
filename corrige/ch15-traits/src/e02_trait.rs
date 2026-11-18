@@ -27,6 +27,8 @@ impl Statistique for Moyenne {
         "moyenne"
     }
     fn calculer(&self, valeurs: &[f64]) -> Option<f64> {
+        // Le test `is_empty` évite `0.0 / 0.0`, qui donnerait `NaN` au lieu de `None`.
+        // Variante en une ligne : `(!valeurs.is_empty()).then(|| ...)`.
         if valeurs.is_empty() {
             None
         } else {
@@ -40,6 +42,7 @@ impl Statistique for Min {
         "min"
     }
     fn calculer(&self, valeurs: &[f64]) -> Option<f64> {
+        // `f64::min` passé tel quel à `reduce`, sans closure.
         valeurs.iter().copied().reduce(f64::min)
     }
 }
@@ -49,6 +52,7 @@ impl Statistique for Max {
         "max"
     }
     fn calculer(&self, valeurs: &[f64]) -> Option<f64> {
+        // Même chose avec `f64::max`.
         valeurs.iter().copied().reduce(f64::max)
     }
 }

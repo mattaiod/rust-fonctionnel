@@ -12,6 +12,8 @@
 
 /// Le plus grand élément, `None` si la liste est vide.
 pub fn plus_grand<T: PartialOrd + Copy>(liste: &[T]) -> Option<T> {
+    // `copied()` donne des `T` au lieu de `&T`, ce que permet `Copy`. `reduce` rend `None` sur une liste vide.
+    // `PartialOrd` suffit pour `>` ; exiger `Ord` exclurait les `f64`.
     liste
         .iter()
         .copied()

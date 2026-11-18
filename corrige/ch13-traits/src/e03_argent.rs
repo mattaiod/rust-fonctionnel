@@ -52,6 +52,7 @@ impl Add for Argent {
     /// - `self + autre` rappelle ce même `add` sans fin : `warning: function cannot return without recursing`.
     ///   Additionnez les champs.
     fn add(self, autre: Argent) -> Argent {
+        // On additionne les `i64` du dedans : écrire `self + autre` rappellerait ce même `add`, sans fin.
         Argent(self.0 + autre.0)
     }
 }
@@ -66,6 +67,8 @@ impl Mul<u32> for Argent {
     ///   ne mélange pas les types d'entiers.
     ///   `i64::from(quantite)` convertit sans perte.
     fn mul(self, quantite: u32) -> Argent {
+        // Seul `Mul<u32>` existe : `Argent * Argent` n'a pas d'`impl` et ne compile pas. `i64::from` ne compile
+        // que pour une conversion sans perte, là où `as` accepterait aussi une conversion qui tronque.
         Argent(self.0 * i64::from(quantite))
     }
 }
@@ -77,6 +80,9 @@ impl Sum for Argent {
     /// - Piège qui compile : `montants.sum()` dans `sum` se rappelle sans fin (pas d'avertissement cette fois,
     ///   `stack overflow` aux tests).
     fn sum<I: Iterator<Item = Argent>>(montants: I) -> Argent {
+        // But : un `fold` qui part de zéro et réutilise `Add`.
+        // `Add::add` se passe tel quel à `fold` : `fn(Argent, Argent) -> Argent` a la forme attendue.
+        // Le départ `Argent::default()` vient du `derive(Default)` : `Argent(0)`.
         montants.fold(Argent::default(), Add::add)
     }
 }
@@ -89,6 +95,8 @@ impl fmt::Display for Argent {
     ///   travaillez sur la valeur absolue (`abs()` ou `unsigned_abs()`).
     /// - `{:02}` pour les centimes : `7` doit s'écrire `07`.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // `unsigned_abs` rend un `u64` sans débordement, même pour `i64::MIN`, où `abs()` déborderait.
+        // Le signe est écrit à part, une seule fois.
         let signe = if self.0 < 0 { "-" } else { "" };
         let absolu = self.0.unsigned_abs();
         write!(f, "{signe}{},{:02} €", absolu / 100, absolu % 100)
@@ -104,6 +112,8 @@ impl fmt::Display for Argent {
 ///   `E0277 a value of type Argent cannot be made by summing an iterator over elements of type &(Argent, u32)` :
 ///   passez par un `map` avant.
 pub fn total_panier(lignes: &[(Argent, u32)]) -> Argent {
+    // But : une ligne, grâce à `Mul` et `Sum`.
+    // `|&(prix, quantite)|` copie les deux valeurs (`Copy`). Puis `*` appelle notre `Mul`, et `sum` notre `Sum`.
     lignes.iter().map(|&(prix, quantite)| prix * quantite).sum()
 }
 

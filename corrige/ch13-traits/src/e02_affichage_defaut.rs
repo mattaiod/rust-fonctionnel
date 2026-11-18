@@ -70,6 +70,9 @@ impl fmt::Display for Duree {
     /// - `{m:02}` complète à deux chiffres ; `{s}` seul n'ajoute pas de zéro. Comparez avec `formater_duree_naif`
     ///   pour savoir quand mettre quoi.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // But : trois cas, un `write!` chacun.
+        // On écrit dans le `Formatter` avec `write!` : `to_string()` vient ensuite gratuitement (`ToString` est
+        // implémenté pour tout type `Display`). Les bras sont testés dans l'ordre : `(0, 0)` avant `(0, _)`.
         let (h, m, s) = (
             self.secondes / 3600,
             self.secondes % 3600 / 60,
@@ -91,6 +94,8 @@ impl Default for Pagination {
     /// - Piège : `..Default::default()` ici rappelle ce même `default` sans fin. Le compilateur prévient
     ///   (`warning: function cannot return without recursing`) ; à l'exécution, `stack overflow`.
     fn default() -> Self {
+        // Écrit à la main : `derive(Default)` donnerait `page: 0` et `par_page: 0`.
+        // `Tri::default()` réutilise la variante marquée `#[default]`.
         Pagination {
             page: 1,
             par_page: 20,

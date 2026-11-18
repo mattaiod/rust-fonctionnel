@@ -30,7 +30,12 @@ pub fn garder_et_multiplier_imperatif(
 ///   `facteur`, which is owned by the current function ``. La closure survit à l'appel : elle doit posséder `facteur`,
 ///   pas l'emprunter.
 pub fn multiplier(facteur: i32) -> impl Fn(i32) -> i32 {
-    move |n| n * facteur
+    move |n| {
+        // La closure est déjà là (avec `move` : pourquoi ?) ; à vous le calcul.
+        // `move` copie `facteur` dans la closure. Sans lui, elle emprunterait `facteur`, un paramètre qui meurt au
+        // retour de `multiplier` : le compilateur refuse (E0373).
+        n * facteur
+    }
 }
 
 /// Le prédicat « est entre `min` et `max`, bornes comprises » (il reçoit une référence, pour `filter`).
@@ -39,7 +44,11 @@ pub fn multiplier(facteur: i32) -> impl Fn(i32) -> i32 {
 /// - `n` est un `&i32`, `min` et `max` des `i32` : `min <= n` donne `` error[E0308]: mismatched types … expected `i32`,
 ///   found `&i32` ``. Écrivez `*n`, ou utilisez `(min..=max).contains(n)`, qui prend justement une référence.
 pub fn entre(min: i32, max: i32) -> impl Fn(&i32) -> bool {
-    move |n| (min..=max).contains(n)
+    move |n| {
+        // Même idée, avec deux valeurs capturées. Un intervalle `min..=max` sait dire s'il contient un nombre.
+        // `contains` attend une référence, et `n` en est déjà une (`&i32`) : rien à ajouter.
+        (min..=max).contains(n)
+    }
 }
 
 /// Garde les nombres de `[min, max]` et les multiplie par `facteur`, en assemblant les deux fonctions ci-dessus.
@@ -50,6 +59,9 @@ pub fn entre(min: i32, max: i32) -> impl Fn(&i32) -> bool {
 /// - Si le compilateur dit `` error[E0277]: expected a `FnMut(&&i32)` closure, found `impl for<'a> Fn(&'a i32) -> bool`
 ///   `` : copiez les nombres juste après `iter()` (`.copied()`), et les deux fonctions s'emboîtent.
 pub fn garder_et_multiplier(nombres: &[i32], min: i32, max: i32, facteur: i32) -> Vec<i32> {
+    // Un pipeline dont les étapes sont les fonctions fabriquées par `entre` et `multiplier`.
+    // `copied()` donne des `i32` : `map` passe alors un `i32` à `multiplier(facteur)`, et `filter` prête un `&i32`,
+    // ce qu'attend `entre(min, max)`. Chaque fabrique est appelée une fois ; sa closure sert pour tous les éléments.
     nombres
         .iter()
         .copied()

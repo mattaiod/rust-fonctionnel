@@ -74,6 +74,8 @@ impl fmt::Display for ErreurLecture {
     /// - Comme à l'exercice 2 : un bras par variante, chacun un `write!(f, ...)` sans `;`. Ne recopiez pas la cause
     ///   dans la phrase, `source` s'en charge (sinon elle s'affiche deux fois dans la chaîne).
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // But : une phrase par variante, sans recopier la cause.
+        // La cause n'est pas dans la phrase : `source` la fournit, et `chaine` l'affichera une seule fois.
         match self {
             Self::ChampManquant { numero } => write!(f, "champ {numero} manquant"),
             Self::PasUnEntier(_) => write!(f, "pas un entier positif"),
@@ -90,6 +92,9 @@ impl Error for ErreurLecture {
     ///   `E0004 non-exhaustive patterns: &ErreurLecture::ChampManquant { .. } not covered`. Une variante sans cause
     ///   rend `None`.
     fn source(&self) -> Option<&(dyn Error + 'static)> {
+        // But : rendre l'erreur de la std quand il y en a une.
+        // `cause` est un `&ParseIntError` (on matche sur `&self`), converti tout seul en `&dyn Error`.
+        // Pas de bras `_` : une variante ajoutée plus tard obligera à décider si elle a une cause.
         match self {
             Self::PasUnEntier(cause) => Some(cause),
             Self::ChampManquant { .. } => None,
@@ -100,6 +105,8 @@ impl Error for ErreurLecture {
 impl fmt::Display for ErreurCommande {
     /// « ligne illisible », « produit vide », « quantité nulle ».
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // But : une phrase par variante.
+        // `Lecture(_)` : la phrase reste courte, le détail arrive par `source`.
         match self {
             Self::Lecture(_) => write!(f, "ligne illisible"),
             Self::ProduitVide => write!(f, "produit vide"),
@@ -113,6 +120,8 @@ impl Error for ErreurCommande {
     /// - Même forme que le `source` d'`ErreurLecture` : la variante `Lecture` prête l'erreur qu'elle enveloppe, les
     ///   autres rendent `None`.
     fn source(&self) -> Option<&(dyn Error + 'static)> {
+        // But : rendre l'erreur de lecture enveloppée.
+        // Même forme qu'au-dessus ; les variantes sans cause sont nommées plutôt qu'attrapées par un `_`.
         match self {
             Self::Lecture(cause) => Some(cause),
             Self::ProduitVide | Self::QuantiteNulle => None,
@@ -125,12 +134,17 @@ impl From<ParseIntError> for ErreurLecture {
     /// - La variante garde l'erreur de la std telle quelle : `Self::PasUnEntier(cause.to_string())` donne
     ///   `E0308 … expected ParseIntError, found String`.
     fn from(cause: ParseIntError) -> Self {
+        // But : permettre `texte.parse::<u32>()?` dans une fonction qui rend `ErreurLecture`.
+        // `?` appelle `From::from` sur l'erreur : avec cet `impl`, une `ParseIntError` remonte en `ErreurLecture`.
+        // On garde la `ParseIntError` entière, pas son texte : `source` pourra la rendre.
         Self::PasUnEntier(cause)
     }
 }
 
 impl From<ErreurLecture> for ErreurCommande {
     fn from(cause: ErreurLecture) -> Self {
+        // But : permettre `?` sur une `ErreurLecture` dans une fonction qui rend `ErreurCommande`.
+        // Même mécanisme une couche plus haut : la lecture ignore le métier, le métier enveloppe la lecture.
         Self::Lecture(cause)
     }
 }
@@ -145,6 +159,9 @@ impl From<ErreurLecture> for ErreurCommande {
 /// - Le `'a` dit que le champ rendu vit aussi longtemps que la ligne d'origine, pas que la tranche `champs` : vous
 ///   n'avez rien à écrire de plus. Attention, `numero - 1` panique si `numero` vaut 0.
 pub fn champ<'a>(champs: &[&'a str], numero: usize) -> Result<&'a str, ErreurLecture> {
+    // But : le champ, ou `ChampManquant`.
+    // `checked_sub(1)` évite la panique de `numero - 1` pour `numero == 0` : on obtient `None`, donc l'erreur.
+    // `copied()` passe de l'`Option<&&str>` de `get` à une `Option<&str>`.
     numero
         .checked_sub(1)
         .and_then(|i| champs.get(i))
@@ -159,6 +176,8 @@ pub fn champ<'a>(champs: &[&'a str], numero: usize) -> Result<&'a str, ErreurLec
 ///   `E0271 type mismatch resolving <u32 as FromStr>::Err == ErreurLecture`. Le `?` appelle votre `From` : il faut
 ///   donc un `?`, puis un `Ok(...)` autour.
 pub fn entier(texte: &str) -> Result<u32, ErreurLecture> {
+    // But : une ligne, grâce au `From` écrit plus haut.
+    // Le `?` convertit l'erreur par `From`, `Ok(...)` remballe la valeur. `u32` est déduit du type de retour.
     Ok(texte.trim().parse()?)
 }
 
@@ -174,11 +193,15 @@ pub fn entier(texte: &str) -> Result<u32, ErreurLecture> {
 /// - Si vous parsez vous-même au lieu d'appeler `entier`, le `?` cherche un `From<ParseIntError> for ErreurCommande`
 ///   qui n'existe pas : `E0277 ? couldn't convert the error to ErreurCommande`.
 pub fn lire_commande(ligne: &str) -> Result<LigneCommande, ErreurCommande> {
+    // But : enchaîner `champ` et `entier` avec `?`, sans un seul `map_err`.
+    // `champ` et `entier` rendent une `ErreurLecture` ; chaque `?` l'emballe en `ErreurCommande::Lecture`
+    // grâce au `From`. Aucun `map_err` : la conversion entre couches est écrite une fois, dans l'`impl`.
     let champs: Vec<&str> = ligne.split(';').collect();
     let produit = champ(&champs, 1)?.trim();
     if produit.is_empty() {
         return Err(ErreurCommande::ProduitVide);
     }
+    // Deux `?` : le premier pour `champ`, le second pour `entier`.
     let quantite = entier(champ(&champs, 2)?)?;
     if quantite == 0 {
         return Err(ErreurCommande::QuantiteNulle);
@@ -201,6 +224,9 @@ pub fn lire_commande(ligne: &str) -> Result<LigneCommande, ErreurCommande> {
 ///   `lifetime may not live long enough` : la closure reçoit un `&&dyn Error`. Déstructurez-le avec `|&e|`.
 /// - `collect()` suivi de `join` donne `E0282 type annotations needed` : `collect::<Vec<_>>()`.
 pub fn chaine(erreur: &(dyn Error + 'static)) -> String {
+    // But : suivre `source()` jusqu'au bout, sans boucle.
+    // `successors` produit l'erreur, sa `source`, la source de la source… et s'arrête au premier `None`.
+    // Alternative récursive : le message, puis `" : "` et `chaine(source)` s'il y a une source.
     std::iter::successors(Some(erreur), |&e| e.source())
         .map(|e| e.to_string())
         .collect::<Vec<_>>()

@@ -23,6 +23,9 @@ pub fn ajouter_bonus_imperatif(notes: &mut [i64], bonus: i64) {
 /// - Si le compilateur dit ``E0308: expected `Vec<i64>`, found `Map<…>` `` : il manque `.collect()` au bout ; un
 ///   `map` seul ne calcule rien.
 pub fn ajouter_bonus(notes: &[i64], bonus: i64) -> Vec<i64> {
+    // Outils : `iter()`, `map(|note| …)`, `min(20)`, `collect()`.
+    // `note + bonus` donne un `i64` neuf : on calcule une nouvelle valeur au lieu d'écrire dans la note d'origine.
+    // `min(20)` plafonne sans `if`. Le `&[i64]` reçu ne peut pas être modifié : la signature le garantit.
     notes.iter().map(|note| (note + bonus).min(20)).collect()
 }
 

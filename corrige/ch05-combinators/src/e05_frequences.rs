@@ -36,6 +36,9 @@ pub fn frequences_imperatif(texte: &str) -> HashMap<String, usize> {
 /// - Si le compilateur dit `` expected `HashMap<String, usize>`, found `()` `` : la dernière ligne de la closure doit
 ///   être `table`, sans point-virgule.
 pub fn frequences(texte: &str) -> HashMap<String, usize> {
+    // Replier les mots dans une table : pour chaque mot, incrémenter sa case, en la créant à 0 si besoin.
+    // `map(str::to_lowercase)` avant le `fold` : chaque clé `String` est fabriquée une fois, déjà en minuscules.
+    // `entry` cherche la clé une seule fois et crée la case à 0 si besoin ; `get_mut` puis `insert` en font deux.
     texte
         .split_whitespace()
         .map(str::to_lowercase)

@@ -48,6 +48,10 @@ pub fn lire_valeur<T: FromStr>(
     cle: &str,
     defaut: T,
 ) -> Result<T, ErreurConfig> {
+    // But : absent → `Ok(defaut)` ; présent → parsé, ou l'erreur qui nomme la clé et la valeur.
+    // `map_or` traite les deux cas en un appel : clé absente, `Ok(defaut)` ; clé présente, le résultat du `parse`.
+    // Le type visé par `parse` est `T`, déduit du type de retour : pas de turbofish. `map_err` remplace l'erreur
+    // de `parse` (son type dépend de `T`) par une `ErreurConfig` qui garde la valeur brute.
     brut.get(cle).map_or(Ok(defaut), |valeur| {
         valeur.trim().parse().map_err(|_| ErreurConfig {
             cle: cle.to_string(),
@@ -65,6 +69,10 @@ pub fn lire_valeur<T: FromStr>(
 ///   `unwrap_or("localhost")` : `get` rend une `Option<&String>`. Passez d'abord en `Option<String>` avec `map`, puis
 ///   donnez un défaut qui est aussi une `String`.
 pub fn lire_config(brut: &HashMap<String, String>) -> Result<Config, ErreurConfig> {
+    // But : le `struct` rempli champ par champ, sans un seul `match`.
+    // Les types des champs (`u16`, `bool`, `u64`) choisissent le `T` de chaque `lire_valeur`. Chaque `?` sort à la
+    // première clé illisible. Pour `hote`, rien ne peut échouer ; `unwrap_or_else` n'alloue la valeur par défaut
+    // que si la clé manque.
     Ok(Config {
         hote: brut
             .get("hote")

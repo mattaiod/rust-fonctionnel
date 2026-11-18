@@ -44,6 +44,9 @@ impl<T> NonVide<T> {
     ///   `v[1..].to_vec()` exige `T: Clone` (`E0277 the trait bound T: Clone is not satisfied`). Un premier `next()`
     ///   prend le premier élément, `collect()` prend ce qui reste.
     pub fn depuis_iter(mut elements: impl Iterator<Item = T>) -> Option<Self> {
+        // But : le premier `next()` décide de tout ; le reste se `collect`.
+        // `next()` consomme le premier élément ; s'il manque, `map` rend `None` et la fonction s'arrête là.
+        // Sinon `collect` prend la suite de l'itérateur, déjà avancé d'un cran. Aucun `Clone` nécessaire.
         elements.next().map(|premier| NonVide {
             premier,
             reste: elements.collect(),
@@ -55,11 +58,14 @@ impl<T> NonVide<T> {
     /// **Aide Rust** (ch00, section 2)
     /// - `self.premier` est un `T` ; on rend un `&T` : `E0308 … expected &T, found type parameter T`. Prêtez-le.
     pub fn premier(&self) -> &T {
+        // But : aucune `Option`.
+        // Le champ `premier` existe toujours : c'est la forme de la `struct` qui garantit le non-vide.
         &self.premier
     }
 
     /// Le nombre d'éléments, au moins 1.
     pub fn taille(&self) -> usize {
+        // But : une addition.
         1 + self.reste.len()
     }
 
@@ -74,6 +80,9 @@ impl<T> NonVide<T> {
     /// - Tous les éléments doivent être des `&T` : `std::iter::once(self.premier)` donne des `T`, d'où
     ///   `E0271 type mismatch resolving … expected type parameter T, found &T`.
     pub fn iter(&self) -> Box<dyn Iterator<Item = &T> + '_> {
+        // But : le premier, puis le reste, en un seul itérateur.
+        // `once(&self.premier)` est un itérateur d'un seul `&T` ; `chain` le colle devant `self.reste.iter()`.
+        // Alternative : rendre `impl Iterator<Item = &T> + '_` éviterait l'allocation de la `Box`.
         Box::new(std::iter::once(&self.premier).chain(self.reste.iter()))
     }
 
@@ -85,6 +94,9 @@ impl<T> NonVide<T> {
     /// - `self` est possédé : prenez les éléments par valeur (`into_iter()`). Avec `iter()`, `f` recevrait des `&T` :
     ///   `E0277 expected a FnMut(&T) closure, found &impl Fn(T) -> U`.
     pub fn map<U>(self, f: impl Fn(T) -> U) -> NonVide<U> {
+        // But : transformer le premier, puis le reste, avec la même closure.
+        // `f` sert deux fois : appelée sur le premier, puis prêtée à `map`. Si `F: Fn`, alors `&F` est aussi un `Fn`.
+        // Le résultat a encore un premier élément : non vide par construction, rien à revérifier.
         NonVide {
             premier: f(self.premier),
             reste: self.reste.into_iter().map(&f).collect(),
@@ -98,6 +110,8 @@ impl<T> NonVide<T> {
     ///   `E0596 cannot borrow self.reste as mutable, as self is not declared as mutable`, et muter n'est pas le style
     ///   demandé. Fabriquez un nouvel itérateur, le premier puis le reste, et collectez-le.
     pub fn vers_vec(self) -> Vec<T> {
+        // But : l'inverse de `new`.
+        // `chain` accepte tout `IntoIterator` : on lui passe le `Vec` directement, par valeur.
         std::iter::once(self.premier).chain(self.reste).collect()
     }
 }
@@ -111,6 +125,9 @@ impl<T: Ord> NonVide<T> {
     /// - Piège qui compile : `self.reste.iter().max().unwrap_or(&self.premier)` ignore le premier dès que le reste
     ///   n'est pas vide (`[9, 1]` rendrait `1`).
     pub fn maximum(&self) -> &T {
+        // But : un `fold` qui part du premier élément.
+        // Partir de `&self.premier` remplace l'`Option` qu'aurait rendue un `max()` sur le reste.
+        // `x > max` strict : en cas d'égalité, on garde l'élément déjà retenu, donc le premier rencontré.
         self.reste
             .iter()
             .fold(&self.premier, |max, x| if x > max { x } else { max })
@@ -126,6 +143,8 @@ impl<T> TryFrom<Vec<T>> for NonVide<T> {
     ///   (`E0308 … expected Result<NonVide<T>, VecVide>, found Option<NonVide<T>>`) : `Option` a une méthode qui
     ///   transforme `None` en une erreur donnée.
     fn try_from(valeurs: Vec<T>) -> Result<Self, Self::Error> {
+        // But : réutiliser `depuis_iter`, nommer l'absence.
+        // La seule vérification « non vide » du type a lieu ici. `ok_or` donne un nom, `VecVide`, au `None`.
         NonVide::depuis_iter(valeurs.into_iter()).ok_or(VecVide)
     }
 }

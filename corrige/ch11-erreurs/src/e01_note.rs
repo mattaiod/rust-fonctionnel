@@ -52,6 +52,9 @@ pub enum ErreurNote {
 /// - La note lue est un `u32`, la fonction rend un `u8` : `Ok(note)` donne `E0308 … expected u8, found u32`. Après le
 ///   contrôle `<= 20`, la conversion ne perd rien.
 pub fn parser_note(texte: &str) -> Result<u8, ErreurNote> {
+    // But : les mêmes règles que `parser_note_naif`, une variante d'`ErreurNote` par cause.
+    // `map_err` traduit la `ParseIntError` de la std en variante d'`ErreurNote`, puis `?` la fait remonter.
+    // Chaque variante porte sa donnée (le texte, la note) : l'appelant trie par `match`, sans lire de phrase.
     let texte = texte.trim();
     if texte.is_empty() {
         return Err(ErreurNote::Vide);
@@ -59,6 +62,7 @@ pub fn parser_note(texte: &str) -> Result<u8, ErreurNote> {
     let note: u32 = texte
         .parse()
         .map_err(|_| ErreurNote::PasUnNombre(texte.to_string()))?;
+    // Conversion et borne en une chaîne, sans `as`. Tout aussi juste : `if note > 20 { Err(..) } else { .. }`.
     u8::try_from(note)
         .ok()
         .filter(|n| *n <= 20)
@@ -74,6 +78,9 @@ pub fn parser_note(texte: &str) -> Result<u8, ErreurNote> {
 /// - Tous les bras rendent le même type, un `Result` : `=> 0` donne
 ///   `E0308 … expected Result<u8, ErreurNote>, found integer`.
 pub fn note_ou_zero(texte: &str) -> Result<u8, ErreurNote> {
+    // But : réagir à UNE variante, laisser passer les autres. Aucune comparaison de chaînes.
+    // Le `match` porte sur une variante, pas sur un texte : retoucher un message ne change plus rien ici.
+    // Revers du bras attrape-tout : une variante ajoutée plus tard y passera sans avertissement du compilateur.
     match parser_note(texte) {
         Err(ErreurNote::Vide) => Ok(0),
         autre => autre,

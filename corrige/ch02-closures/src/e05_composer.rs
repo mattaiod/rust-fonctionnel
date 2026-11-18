@@ -18,7 +18,10 @@
 /// - Le `move` est écrit pour vous : sans lui,
 ///   ``E0373: closure may outlive the current function, but it borrows `f` `` (et `g`).
 pub fn composer2<A, B, C>(f: impl Fn(A) -> B, g: impl Fn(B) -> C) -> impl Fn(A) -> C {
-    move |x| g(f(x))
+    move |x| {
+        // L'ordre se lit de l'intérieur : `f` d'abord, `g` sur son résultat.
+        g(f(x))
+    }
 }
 
 /// Toutes les fonctions de la liste, de la première à la dernière.
@@ -31,6 +34,9 @@ pub fn composer2<A, B, C>(f: impl Fn(A) -> B, g: impl Fn(B) -> C) -> impl Fn(A) 
 ///   ``E0507: cannot move out of `fonctions`, a captured variable in an `Fn` closure``.
 /// - Le reste est le `fold` de l'exercice 4 : départ `x`, chaque `f` appliquée à l'accumulateur.
 pub fn composer_tout(fonctions: Vec<Box<dyn Fn(i64) -> i64>>) -> Box<dyn Fn(i64) -> i64> {
+    // La closure possède la liste (`move`) et la parcourt avec `iter()` à chaque appel : elle reste `Fn`.
+    // Liste vide : le `fold` rend `x`, c'est l'identité demandée, sans cas particulier.
+    // `f(acc)` marche sur un `&Box<dyn Fn>` : l'appel traverse la référence et la `Box`.
     Box::new(move |x| fonctions.iter().fold(x, |acc, f| f(acc)))
 }
 

@@ -38,6 +38,9 @@ impl Contact {
     /// - `match (email, telephone)` reçoit les deux `Option` par valeur : les `String` se déplacent dans les variantes,
     ///   aucun `clone` nécessaire.
     pub fn depuis_options(email: Option<String>, telephone: Option<String>) -> Option<Contact> {
+        // But : un `match` sur le couple, quatre bras.
+        // Le couple est pris par valeur : les `String` sont déplacées dans le contact, sans clone. `(None, None)` est
+        // le seul refus, et c'est le seul endroit du programme où l'on vérifie la règle « au moins un ».
         match (email, telephone) {
             (Some(email), Some(telephone)) => Some(Contact::LesDeux { email, telephone }),
             (Some(email), None) => Some(Contact::Email(email)),
@@ -56,6 +59,9 @@ impl Contact {
     /// - Ici `email` est un `&String`, et `Some(email)` devient tout seul une `Option<&str>`. `Some(email.clone())`
     ///   donnerait une `Option<String>` : `` expected `&str`, found `String` ``.
     pub fn email(&self) -> Option<&str> {
+        // But : un motif `|` regroupe les variantes qui portent un email.
+        // Dans un motif `|`, chaque alternative doit lier les mêmes noms avec le même type : ici `email`.
+        // `self` est un `&Contact`, donc `email` est un `&String`, converti en `&str` par deref coercion.
         match self {
             Contact::Email(email) | Contact::LesDeux { email, .. } => Some(email),
             Contact::Telephone(_) => None,
@@ -69,6 +75,8 @@ impl Contact {
     ///   shared reference `` : `match *self` essaie de sortir la `String`. `match self` lie des références, et c'est
     ///   une référence qu'on rend.
     pub fn canal(&self) -> &str {
+        // But : le même ordre de préférence que la version naïve, sans `Option` ni `panic!`.
+        // Rendre `&str` sans `Option` est sûr : chaque variante porte au moins un moyen de contact.
         match self {
             Contact::Email(email) | Contact::LesDeux { email, .. } => email,
             Contact::Telephone(telephone) => telephone,
@@ -81,6 +89,9 @@ impl Contact {
     /// - `self` sans `&` : la méthode consomme le contact, on peut donc déplacer `email` dans le nouveau, sans `clone`.
     ///   Avec `&self`, ce serait `` expected `String`, found `&String` ``.
     pub fn avec_telephone(self, nouveau: String) -> Contact {
+        // But : consommer l'ancien contact et en rendre un nouveau.
+        // `self` par valeur : l'email est déplacé dans le nouveau contact, sans clone. L'ancien téléphone de `LesDeux`,
+        // ignoré par `..`, est libéré avec l'ancien contact.
         match self {
             Contact::Email(email) | Contact::LesDeux { email, .. } => Contact::LesDeux {
                 email,

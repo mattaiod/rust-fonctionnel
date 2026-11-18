@@ -37,6 +37,9 @@ pub fn appliquer_toutes_imperatif(operations: &[Operation], x: i64) -> i64 {
 /// - Si le compilateur dit ``E0373: closure may outlive the current function, but it borrows `k` `` : la branche
 ///   `Ajouter(k)` a besoin de `Box::new(move |x| …)`.
 pub fn operation(op: Operation) -> Box<dyn Fn(i64) -> i64> {
+    // Un `match` dont chaque branche rend `Box::new(|x| …)` (ou `Box::new(move |x| …)`).
+    // Chaque closure a son propre type : `Box<dyn Fn>` les range sous un même type, au prix d'un appel indirect.
+    // Seule `Ajouter(k)` capture une variable, d'où le `move` sur cette branche uniquement.
     match op {
         Operation::Doubler => Box::new(|x| x * 2),
         Operation::Opposer => Box::new(|x| -x),
@@ -53,6 +56,9 @@ pub fn operation(op: Operation) -> Box<dyn Fn(i64) -> i64> {
 /// - `operation(*op)` rend une closure : on l'appelle aussitôt avec une deuxième paire de parenthèses,
 ///   `operation(*op)(valeur)`, et le `fold` RENVOIE ce résultat.
 pub fn appliquer_toutes(operations: &[Operation], x: i64) -> i64 {
+    // Outils : `iter()`, `fold(x, |acc, op| …)`, `operation(*op)(acc)`.
+    // `operation(*op)` fabrique la closure, la seconde paire de parenthèses l'appelle aussitôt sur l'accumulateur.
+    // `*op` est permis car `Operation` est `Copy`.
     operations
         .iter()
         .fold(x, |valeur, op| operation(*op)(valeur))

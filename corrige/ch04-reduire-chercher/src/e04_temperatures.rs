@@ -50,6 +50,9 @@ pub fn amplitude_imperatif(temperatures: &[i64]) -> Option<i64> {
 /// - `all` passe un `&i64`, et `contains` attend justement une référence : `contains(t)`, sans étoile. Avec
 ///   `contains(*t)` : ``E0308: expected `&i64`, found `i64` ``.
 pub fn toutes_dans_plage(temperatures: &[i64], min: i64, max: i64) -> bool {
+    // Outils : `iter()`, `all(|t| …)`, `(min..=max).contains(t)`.
+    // `(min..=max).contains(t)` remplace `*t >= min && *t <= max` et nomme l'intention : une plage inclusive.
+    // `all` s'arrête à la première température hors plage, et rend `true` sur une liste vide.
     temperatures.iter().all(|t| (min..=max).contains(t))
 }
 
@@ -58,6 +61,8 @@ pub fn toutes_dans_plage(temperatures: &[i64], min: i64, max: i64) -> bool {
 /// **Aide Rust** (ch00, section 4)
 /// - Si le compilateur dit ``E0308: expected `&i64`, found integer`` sur `t <= 0` : comparez `*t <= 0`.
 pub fn il_a_gele(temperatures: &[i64]) -> bool {
+    // Outils : `iter()`, `any(|t| …)`.
+    // `any` s'arrête au premier gel trouvé, comme le `return true` de la boucle.
     temperatures.iter().any(|t| *t <= 0)
 }
 
@@ -69,6 +74,9 @@ pub fn il_a_gele(temperatures: &[i64]) -> bool {
 /// - Si le compilateur dit ``E0308: expected `Option<i64>`, found `i64` `` : mettez la différence dans `Some(…)`.
 /// - `unwrap()` compile, mais panique sur la liste vide : le test `liste_vide` échoue.
 pub fn amplitude(temperatures: &[i64]) -> Option<i64> {
+    // Outils : `iter().max()?`, `iter().min()?`, `Some(…)`.
+    // Chaque `?` sort avec `None` si la liste est vide : le cas vide est réglé sans `if`.
+    // `&i64 - &i64` est défini et rend un `i64`. Coût : deux parcours ; un `fold` sur une paire n'en ferait qu'un.
     Some(temperatures.iter().max()? - temperatures.iter().min()?)
 }
 

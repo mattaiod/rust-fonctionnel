@@ -15,6 +15,8 @@ use crate::lire_capteur;
 
 /// La lecture du capteur 1 plus celle du capteur 2, l'une après l'autre.
 pub async fn lire_deux() -> f64 {
+    // Deux `.await` à la suite : la lecture 2 ne commence qu'à la fin de la 1, environ 200 ms en tout.
+    // Pendant chaque attente, le thread du runtime reste libre pour d'autres tâches.
     let a = lire_capteur(1).await;
     let b = lire_capteur(2).await;
     a + b

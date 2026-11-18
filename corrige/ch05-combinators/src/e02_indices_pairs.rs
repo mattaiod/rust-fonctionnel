@@ -26,6 +26,9 @@ pub fn indices_pairs_imperatif(nombres: &[i64]) -> Vec<usize> {
 /// - Si le compilateur dit `` error[E0369]: cannot calculate the remainder of `&&i64` divided by `{integer}` `` :
 ///   déréférencez (`*n % 2`), ou déstructurez dans le motif : `|&(_, &n)|` donne un `i64`.
 pub fn indices_pairs(nombres: &[i64]) -> Vec<usize> {
+    // Numéroter les éléments, garder ceux dont la valeur est paire, ne retenir que le numéro.
+    // `enumerate` avant `filter` : sinon les index numéroteraient les éléments déjà filtrés.
+    // Variante en une étape : `filter_map(|(i, n)| (n % 2 == 0).then_some(i))`.
     nombres
         .iter()
         .enumerate()

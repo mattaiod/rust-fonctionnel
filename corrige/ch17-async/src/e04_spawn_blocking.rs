@@ -20,6 +20,9 @@ pub fn calcul_lourd(valeurs: &[f64]) -> f64 {
 
 /// `calcul_lourd`, lancé hors du runtime async.
 pub async fn analyser(valeurs: Vec<f64>) -> f64 {
+    // `calcul_lourd` ne rend jamais la main : sur un thread du runtime, il bloquerait les autres tâches.
+    // `spawn_blocking` l'envoie sur le pool de threads réservé au code bloquant, `move` lui donne `valeurs`.
+    // `.await` rend `Err` si la closure a paniqué, d'où le `unwrap`.
     tokio::task::spawn_blocking(move || calcul_lourd(&valeurs))
         .await
         .unwrap()

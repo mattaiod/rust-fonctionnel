@@ -34,6 +34,9 @@ impl TryFrom<f64> for Score {
     /// - `-0.0 == 0.0` est vrai en `f64` : un simple test d'égalité à `0.0` suffit pour ramener le zéro négatif à
     ///   `0.0`.
     fn try_from(valeur: f64) -> Result<Self, Self::Error> {
+        // But : refuser le non-fini, normaliser le zéro négatif.
+        // `is_finite` écarte `NaN`, `+inf` et `-inf` en un seul test.
+        // `-0.0 == 0.0` est vrai : les deux zéros donnent `0.0`, le signe disparaît avant tout `total_cmp`.
         if valeur.is_finite() {
             Ok(Score(if valeur == 0.0 { 0.0 } else { valeur }))
         } else {
@@ -49,6 +52,9 @@ impl Ord for Score {
     ///   `Option<Ordering>` (`E0308 … expected Ordering, found Option<Ordering>`). La méthode des flottants qui rend
     ///   un `Ordering` est dans le cours de l'exercice.
     fn cmp(&self, autre: &Self) -> Ordering {
+        // But : l'ordre total des flottants, honnête ici grâce à l'invariant.
+        // `total_cmp` ordonne tous les `f64` : les `NaN` aux extrémités, et `-0.0` avant `0.0`.
+        // Ici, plus de `NaN` ni de `-0.0` : il coïncide avec l'ordre usuel, et `impl Ord` devient honnête.
         self.0.total_cmp(&autre.0)
     }
 }
@@ -70,6 +76,7 @@ impl Eq for Score {}
 impl Score {
     /// La valeur.
     pub fn valeur(self) -> f64 {
+        // But : lire le champ.
         self.0
     }
 }
@@ -84,6 +91,9 @@ impl Score {
 /// - `v.sort()` modifie et rend `()` (`E0308 … found Result<(), NonFini>`) ; `pf_outils::trier_par` rend le `Vec`
 ///   trié. Donnez-lui le `Vec` lui-même, pas `v.iter()`, sinon vous obtenez des `&Score`.
 pub fn classer(scores: &[f64]) -> Result<Vec<Score>, NonFini> {
+    // But : parser tout, puis trier par ordre décroissant (`pf_outils::trier_par`).
+    // Collecter dans un `Result<Vec<_>, _>` s'arrête au premier `NonFini` : on ne trie que si tout est parsé.
+    // `b.cmp(a)` inverse l'ordre : du plus grand au plus petit.
     scores
         .iter()
         .map(|&s| Score::try_from(s))
@@ -97,6 +107,8 @@ pub fn classer(scores: &[f64]) -> Result<Vec<Score>, NonFini> {
 /// - `iter().max()` rend une `Option<&Score>` : `E0308 … expected Option<Score>, found Option<&Score>`. `Score` est
 ///   `Copy` : `.copied()`.
 pub fn meilleur(scores: &[Score]) -> Option<Score> {
+    // But : sur des `f64`, `max()` ne compile pas ; sur un type `Ord`, c'est une ligne.
+    // L'`Option` reste : une liste vide n'a pas de meilleur score, et aucun invariant de `Score` ne l'exclut.
     scores.iter().max().copied()
 }
 

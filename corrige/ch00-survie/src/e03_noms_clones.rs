@@ -25,6 +25,9 @@ pub fn noms_longs_imperatif(noms: &[String], longueur_min: usize) -> Vec<String>
 ///
 /// Les noms d'au moins `longueur_min` caractères, dans l'ordre (copies).
 pub fn noms_longs(noms: &[String], longueur_min: usize) -> Vec<String> {
+    // Outils : `iter()`, `filter`, `chars().count()`, `cloned()`, `collect()`.
+    // `cloned()` après `filter` : on ne copie que les noms gardés.
+    // `chars().count()` compte des caractères ; `len()` compterait des octets (faux sur « Zoé »).
     noms.iter()
         .filter(|nom| nom.chars().count() >= longueur_min)
         .cloned()
@@ -46,6 +49,8 @@ pub fn en_majuscules_imperatif(noms: &[String]) -> Vec<String> {
 ///
 /// Les noms en majuscules, dans l'ordre.
 pub fn en_majuscules(noms: &[String]) -> Vec<String> {
+    // Outils : `iter()`, `map(|nom| nom.to_uppercase())`, `collect()`. Sans `clone`.
+    // `to_uppercase` lit un `&str` et alloue sa propre `String` : un `clone` avant serait une copie jetée aussitôt.
     noms.iter().map(|nom| nom.to_uppercase()).collect()
 }
 

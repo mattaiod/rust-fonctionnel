@@ -53,6 +53,9 @@ pub enum Feu {
 /// - Oubliez une couleur et le compilateur dit `` error[E0004]: non-exhaustive patterns: `Feu::Rouge` not covered `` :
 ///   c'est la protection que vous voulez, ajoutez le bras.
 pub fn suivant(feu: Feu) -> Feu {
+    // But : un `match`, un bras par couleur, sans `_`.
+    // Sans `_`, ajoutez une couleur à `Feu` et cette fonction ne compile plus tant qu'on ne l'a pas traitée.
+    // Aucun cas « état incohérent » à gérer : le type n'en contient pas.
     match feu {
         Feu::Vert => Feu::Orange,
         Feu::Orange => Feu::Rouge,
@@ -62,6 +65,8 @@ pub fn suivant(feu: Feu) -> Feu {
 
 /// Durée de chaque couleur, en secondes : vert 30, orange 3, rouge 20.
 pub fn duree(feu: Feu) -> u32 {
+    // But : un `match`.
+    // Même protection : le compilateur vérifie qu'aucune couleur n'a été oubliée.
     match feu {
         Feu::Vert => 30,
         Feu::Orange => 3,
@@ -75,6 +80,9 @@ pub fn duree(feu: Feu) -> u32 {
 /// - Matchez le triplet `(feu.vert, feu.orange, feu.rouge)`. Ici, un dernier bras `_ => None` est légitime : les 5
 ///   combinaisons restantes sont vraiment « tout le reste ».
 pub fn depuis_naif(feu: FeuNaif) -> Option<Feu> {
+    // But : un `match` sur le triplet de booléens.
+    // Ici le `_` est légitime : il refuse en bloc les 5 combinaisons absurdes d'un type qu'on ne contrôle pas.
+    // La conversion du naïf vers le bon type peut échouer, d'où l'`Option`.
     match (feu.vert, feu.orange, feu.rouge) {
         (true, false, false) => Some(Feu::Vert),
         (false, true, false) => Some(Feu::Orange),
@@ -92,6 +100,9 @@ pub fn depuis_naif(feu: FeuNaif) -> Option<Feu> {
 ///   found `&Feu` `` → `|&feu|` ou `*feu` (`Feu` est `Copy`).
 /// - `duree` se passe par son nom à `map`.
 pub fn duree_cycle(depart: Feu) -> u32 {
+    // But : parcourir les trois couleurs à partir de `depart` avec `suivant`, sans boucle.
+    // `successors` fabrique la suite `depart`, `suivant(depart)`, … à partir d'une fonction, sans état mutable.
+    // Elle est infinie (la closure rend toujours `Some`) : `take(3)` la coupe au cycle complet.
     std::iter::successors(Some(depart), |&feu| Some(suivant(feu)))
         .take(3)
         .map(duree)

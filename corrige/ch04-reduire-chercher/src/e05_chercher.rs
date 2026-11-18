@@ -37,6 +37,8 @@ pub fn premier_depassement_imperatif(mesures: &[i64], seuil: i64) -> Option<usiz
 /// - Si le compilateur dit ``E0308: expected `Option<i64>`, found `Option<&i64>` `` : il manque `.copied()` (sur
 ///   l'itérateur avant `find`, ou sur l'`Option` après).
 pub fn premier_negatif(nombres: &[i64]) -> Option<i64> {
+    // Outils : `iter()`, `copied()`, `find(|n| …)`.
+    // `copied()` sur l'itérateur cette fois : `find` reçoit un `&i64` et rend directement un `Option<i64>`.
     nombres.iter().copied().find(|n| *n < 0)
 }
 
@@ -46,6 +48,9 @@ pub fn premier_negatif(nombres: &[i64]) -> Option<i64> {
 /// - `position` passe l'élément avec UNE seule référence (`&i64`), pas deux comme `find`. Si le compilateur dit
 ///   ``E0308: expected `&i64`, found `i64` `` : comparez `*m > seuil`.
 pub fn premier_depassement(mesures: &[i64], seuil: i64) -> Option<usize> {
+    // Outils : `iter()`, `position(|m| …)`.
+    // `position` rend le rang dans un `Option<usize>` : `None` remplace le `-1` qu'on oublie de tester.
+    // Son prédicat reçoit l'élément lui-même (`&i64`) : une seule étoile.
     mesures.iter().position(|m| *m > seuil)
 }
 

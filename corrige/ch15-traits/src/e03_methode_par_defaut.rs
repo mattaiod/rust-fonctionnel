@@ -20,6 +20,8 @@ pub trait Statistique {
 
     /// Méthode par défaut : une ligne lisible, par exemple `"moyenne = 14.00"`.
     fn resume(&self, valeurs: &[f64]) -> String {
+        // Une méthode par défaut ne connaît que le contrat : elle passe par `self.nom()` et `self.calculer()`,
+        // que chaque type fournit. Un type peut encore redéfinir `resume` s'il le veut.
         match self.calculer(valeurs) {
             Some(valeur) => format!("{} = {valeur:.2}", self.nom()),
             None => format!("{} = aucune mesure", self.nom()),

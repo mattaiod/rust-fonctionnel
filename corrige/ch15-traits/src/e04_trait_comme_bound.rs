@@ -43,6 +43,8 @@ impl Statistique for Max {
 
 /// `"moyenne : 14"`, ou `"moyenne : -"` sur une série vide.
 pub fn rapport<S: Statistique>(stat: &S, valeurs: &[f64]) -> String {
+    // Le bound `S: Statistique` autorise `nom()` et `calculer()`. Le compilateur produit une version de la
+    // fonction par type utilisé (monomorphisation) : l'appel est direct, sans `dyn`.
     match stat.calculer(valeurs) {
         Some(valeur) => format!("{} : {valeur}", stat.nom()),
         None => format!("{} : -", stat.nom()),
@@ -51,6 +53,8 @@ pub fn rapport<S: Statistique>(stat: &S, valeurs: &[f64]) -> String {
 
 /// `true` si `a` et `b` donnent toutes les deux une valeur.
 pub fn toutes_definies(a: &impl Statistique, b: &impl Statistique, valeurs: &[f64]) -> bool {
+    // Chaque `impl Statistique` est un paramètre générique distinct : `a` et `b` peuvent être de types différents.
+    // `&&` court-circuite : `b` n'est pas calculé si `a` rend `None`.
     a.calculer(valeurs).is_some() && b.calculer(valeurs).is_some()
 }
 

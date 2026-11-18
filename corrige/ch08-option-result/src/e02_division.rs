@@ -30,6 +30,10 @@ pub enum ErreurDivision {
 /// - `checked_div` rend `None` dans les **deux** cas d'échec (zéro et dépassement) : traitez `b == 0` avant (un `if …
 ///   else` est permis), sinon tout devient `Depassement`.
 pub fn diviser(a: i64, b: i64) -> Result<i64, ErreurDivision> {
+    // But : distinguer les deux échecs ; la bibliothèque standard a une division « vérifiée ».
+    // `checked_div` rend `None` dans deux cas : diviseur nul, et `i64::MIN / -1` (le résultat dépasse `i64::MAX`).
+    // On teste zéro d'abord : le `None` restant ne peut être que le dépassement. `ok_or` suffit, l'erreur est une
+    // simple variante déjà construite (`ok_or_else` servirait si la fabriquer coûtait quelque chose).
     if b == 0 {
         Err(ErreurDivision::ParZero)
     } else {
@@ -46,6 +50,10 @@ pub fn diviser(a: i64, b: i64) -> Result<i64, ErreurDivision> {
 /// - Si le compilateur dit `` found `Result<Result<i64, ErreurDivision>, …>` `` : `map` avec une étape qui peut échouer
 ///   emboîte deux `Result`. C'est `and_then`.
 pub fn pourcentage(part: i64, total: i64) -> Result<i64, ErreurDivision> {
+    // But : deux étapes faillibles enchaînées, la seconde étant `diviser`.
+    // `part * 100` peut lui-même déborder : `checked_mul` en fait une `Option`, `ok_or` un `Result`. `and_then`
+    // ne lance `diviser` que si la multiplication a réussi ; sinon l'erreur traverse telle quelle.
+    // Variante avec `?` : `diviser(part.checked_mul(100).ok_or(ErreurDivision::Depassement)?, total)`.
     part.checked_mul(100)
         .ok_or(ErreurDivision::Depassement)
         .and_then(|centuple| diviser(centuple, total))

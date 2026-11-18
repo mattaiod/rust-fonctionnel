@@ -26,6 +26,9 @@ pub fn cumuls_imperatif(nombres: &[i64]) -> Vec<i64> {
 ///
 /// Les sommes cumulées : `[3, 1, 4]` donne `[3, 4, 8]`.
 pub fn cumuls(nombres: &[i64]) -> Vec<i64> {
+    // Outils : `iter()`, `fold(Vec::new(), |mut acc, n| { …; acc })`, `last()`, `copied()`, `unwrap_or`, `push`.
+    // Pas de variable pour le total courant : on relit le dernier élément de `acc` (0 au premier tour).
+    // Alternative : `scan(0, |total, n| …)` (chapitre 5), qui transporte le total sans relire le `Vec`.
     nombres.iter().fold(Vec::new(), |mut acc, n| {
         let total = acc.last().copied().unwrap_or(0) + n;
         acc.push(total);
@@ -51,6 +54,9 @@ pub fn compter_mots_imperatif(texte: &str) -> HashMap<String, usize> {
 ///
 /// Combien de fois apparaît chaque mot (séparés par des blancs, sensible à la casse).
 pub fn compter_mots(texte: &str) -> HashMap<String, usize> {
+    // Outils : `split_whitespace()`, `fold(HashMap::new(), |mut acc, mot| { …; acc })`, `entry`, `or_insert`.
+    // `entry(…).or_insert(0)` crée la case à 0 si le mot est nouveau et rend un `&mut usize` : une seule recherche.
+    // `to_string()` alloue même si le mot est déjà présent : `entry` veut une clé possédée.
     texte
         .split_whitespace()
         .fold(HashMap::new(), |mut acc, mot| {

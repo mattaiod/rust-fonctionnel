@@ -100,6 +100,7 @@ impl Add for Centimes {
     /// **Aide Rust** (ch00, section 1)
     /// - Additionnez les champs (`self.0`), pas `self + autre`, qui rappellerait ce même `add` sans fin.
     fn add(self, autre: Centimes) -> Centimes {
+        // `.0` sort le `u64` du newtype, on additionne les nombres bruts.
         Centimes(self.0 + autre.0)
     }
 }
@@ -111,6 +112,7 @@ impl Sum for Centimes {
     /// - Un `fold` qui part de `Centimes(0)` et réutilise `Add`. `montants.sum()` ici se rappellerait lui-même
     ///   (`stack overflow`).
     fn sum<I: Iterator<Item = Centimes>>(montants: I) -> Centimes {
+        // `Add::add` passé comme fonction : `fold` l'appelle avec (accumulateur, montant), aucune closure à écrire.
         montants.fold(Centimes(0), Add::add)
     }
 }
@@ -122,6 +124,7 @@ impl Centimes {
     /// - `self.0 * quantite` donne `E0277 cannot multiply u64 by Quantite` : passez par `quantite.valeur()` (un
     ///   `u32`), puis `u64::from(...)`.
     pub fn fois(self, quantite: Quantite) -> Centimes {
+        // `u64::from` élargit le `u32` sans perte possible : Rust ne multiplie pas deux entiers de tailles différentes.
         Centimes(self.0 * u64::from(quantite.valeur()))
     }
 }
@@ -134,6 +137,7 @@ impl Quantite {
     ///   `E0308 … expected NonZero<u32>, found Option<NonZero<u32>>`. Un nom de tuple struct est une fonction :
     ///   `.map(Quantite)` marche.
     pub fn nouvelle(valeur: u32) -> Result<Quantite, ErreurPanier> {
+        // `NonZeroU32::new` fait déjà la vérification ; le nom du tuple struct `Quantite` sert de fonction dans `map`.
         NonZeroU32::new(valeur)
             .map(Quantite)
             .ok_or(ErreurPanier::QuantiteNulle)
@@ -149,6 +153,7 @@ impl Quantite {
     /// - `NonZeroU32` n'a pas de `+` : `E0369 cannot add NonZero<u32> to NonZero<u32>`. Il a en revanche une addition
     ///   plafonnée qui prend un `u32` (voir sa doc).
     pub fn plus(self, autre: Quantite) -> Quantite {
+        // `NonZeroU32::saturating_add` rend encore un `NonZeroU32` : plafonné à `u32::MAX`, jamais 0.
         Quantite(self.0.saturating_add(autre.valeur()))
     }
 
@@ -159,6 +164,7 @@ impl Quantite {
     ///   (`attempt to subtract with overflow`) : `checked_sub` rend une `Option`, et un reste de 0 doit aussi donner
     ///   `None`.
     pub fn moins(self, autre: Quantite) -> Option<Quantite> {
+        // Deux `None` en une chaîne : `checked_sub` refuse un résultat négatif, `NonZeroU32::new` refuse 0.
         self.valeur()
             .checked_sub(autre.valeur())
             .and_then(NonZeroU32::new)
@@ -174,6 +180,8 @@ impl Sku {
     ///   Écrivez `.then(|| ...)`, ou `then_some(...)` avec une valeur.
     /// - `is_ascii_uppercase`, pas `is_uppercase` : « É » est une majuscule, mais pas ASCII.
     pub fn depuis(code: &str) -> Result<Sku, ErreurPanier> {
+        // `all` rend `true` sur une chaîne vide, d'où le test `is_empty` à part.
+        // `then` prend une closure : le `Sku` (et son `to_string`) n'est construit que si le format est bon.
         (!code.is_empty()
             && code
                 .chars()
@@ -203,6 +211,8 @@ impl Panier {
     ///   déplace `article` : `E0505 cannot move out of article because it is borrowed`. Calculez d'abord un booléen
     ///   « déjà là ? », puis deux branches.
     pub fn ajouter(&self, article: Article, quantite: Quantite) -> Panier {
+        // `deja_la` sépare les deux cas : dans la branche `else`, `article` est déplacé sans aucun emprunt en cours.
+        // Chaque branche construit un `Vec` neuf : `self` n'est que prêté, l'ancien panier reste intact.
         let deja_la = self
             .lignes
             .iter()
@@ -240,6 +250,7 @@ impl Panier {
     /// - `filter_map` : chaque ligne devient `Some(ligne gardée ou réduite)` ou `None` (ligne disparue) ;
     ///   `Quantite::moins` rend justement une `Option`.
     pub fn retirer(&self, sku: &Sku, quantite: Quantite) -> Panier {
+        // `filter_map` trie et transforme d'un coup : `moins` rend `None` quand la ligne doit disparaître.
         Panier {
             lignes: self
                 .lignes
@@ -264,6 +275,7 @@ impl Panier {
     /// - Pas de `*` entre `Centimes` et `Quantite` (`E0369 cannot multiply Centimes by Quantite`) : c'est `fois`. Le
     ///   `.sum()` final marche grâce à votre `impl Sum`.
     pub fn sous_total(&self) -> Centimes {
+        // `fois` puis `sum` : on ne sort jamais des `Centimes`, le type garde l'unité jusqu'au bout.
         self.lignes
             .iter()
             .map(|ligne| ligne.article.prix_unitaire.fois(ligne.quantite))
@@ -279,6 +291,8 @@ impl Panier {
     /// - Appliquer les codes dans l'ordre : un `fold` qui part de l'`Addition` de départ et passe l'addition à
     ///   `appliquer(code, self)`, qui est une fonction.
     pub fn total(&self, codes: &[CodePromo]) -> Centimes {
+        // Chaque code devient une fonction `Addition -> Addition` ; le `fold` les applique dans l'ordre.
+        // La remise n'est soustraite qu'une fois, à la fin, avec `saturating_sub` : jamais de total négatif.
         let depart = Addition {
             sous_total: self.sous_total(),
             remise: Centimes(0),
@@ -310,28 +324,32 @@ pub fn appliquer<'a>(
     code: &'a CodePromo,
     panier: &'a Panier,
 ) -> impl Fn(Addition) -> Addition + 'a {
-    move |addition| match code {
-        CodePromo::PourcentageSur(categorie, pourcentage) => {
-            let concerne: Centimes = panier
-                .lignes
-                .iter()
-                .filter(|ligne| ligne.article.categorie == *categorie)
-                .map(|ligne| ligne.article.prix_unitaire.fois(ligne.quantite))
-                .sum();
-            Addition {
-                remise: addition.remise
-                    + Centimes(concerne.0 * u64::from(pourcentage.valeur()) / 100),
-                ..addition
+    move |addition| {
+        // `move` copie dans la closure les deux références `code` et `panier` : elle les garde, d'où le `'a`.
+        // `..addition` recopie les autres champs : chaque bras ne change qu'un champ.
+        match code {
+            CodePromo::PourcentageSur(categorie, pourcentage) => {
+                let concerne: Centimes = panier
+                    .lignes
+                    .iter()
+                    .filter(|ligne| ligne.article.categorie == *categorie)
+                    .map(|ligne| ligne.article.prix_unitaire.fois(ligne.quantite))
+                    .sum();
+                Addition {
+                    remise: addition.remise
+                        + Centimes(concerne.0 * u64::from(pourcentage.valeur()) / 100),
+                    ..addition
+                }
             }
+            CodePromo::MontantFixe(montant) => Addition {
+                remise: addition.remise + *montant,
+                ..addition
+            },
+            CodePromo::LivraisonOfferte => Addition {
+                livraison: Centimes(0),
+                ..addition
+            },
         }
-        CodePromo::MontantFixe(montant) => Addition {
-            remise: addition.remise + *montant,
-            ..addition
-        },
-        CodePromo::LivraisonOfferte => Addition {
-            livraison: Centimes(0),
-            ..addition
-        },
     }
 }
 

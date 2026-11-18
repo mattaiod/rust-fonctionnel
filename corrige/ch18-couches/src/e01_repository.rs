@@ -51,10 +51,13 @@ impl MesuresEnMemoire {
 
 impl MesuresRepository for MesuresEnMemoire {
     fn capteur_existe(&self, capteur_id: u32) -> bool {
+        // `donnees()` prend le verrou ; le `MutexGuard` est relâché en sortant de la méthode.
         self.donnees().contains_key(&capteur_id)
     }
 
     fn ajouter(&self, capteur_id: u32, valeurs: Vec<f64>) -> Option<usize> {
+        // `len()` est lu avant : `extend(valeurs)` déplace `valeurs`, on ne pourrait plus le compter après.
+        // `get_mut(...).map(...)` : capteur absent donne `None` sans `if`.
         let nombre = valeurs.len();
         self.donnees().get_mut(&capteur_id).map(|mesures| {
             mesures.extend(valeurs);
@@ -63,6 +66,8 @@ impl MesuresRepository for MesuresEnMemoire {
     }
 
     fn valeurs_de(&self, capteur_id: u32) -> Vec<f64> {
+        // `cloned()` copie le `Vec` pendant que le verrou est tenu : on rend des données possédées, pas une
+        // référence dans la map, qui ne survivrait pas au `MutexGuard`.
         self.donnees().get(&capteur_id).cloned().unwrap_or_default()
     }
 }

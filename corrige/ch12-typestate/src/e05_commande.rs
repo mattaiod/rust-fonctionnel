@@ -71,11 +71,13 @@ impl<E> Commande<E> {
     /// - On prête les lignes : `self.lignes` donne `E0308 … expected &[Ligne], found Vec<Ligne>`. Un `&Vec<Ligne>` se
     ///   convertit tout seul en `&[Ligne]`.
     pub fn lignes(&self) -> &[Ligne] {
+        // `&Vec<Ligne>` devient `&[Ligne]` par deref coercion : l'appelant ne dépend pas du `Vec`.
         &self.lignes
     }
 
     /// La somme des prix, en centimes.
     pub fn total(&self) -> u32 {
+        // Commun à tous les états : le total a un sens pour un panier comme pour une commande payée.
         self.lignes.iter().map(|l| l.prix_centimes).sum()
     }
 }
@@ -83,6 +85,7 @@ impl<E> Commande<E> {
 impl Commande<Panier> {
     /// Un panier vide pour `client`.
     pub fn ouvrir(client: &str) -> Self {
+        // `Panier` est une struct sans champ, de taille nulle : l'état ne coûte rien en mémoire.
         Commande {
             client: client.to_string(),
             lignes: Vec::new(),
@@ -96,6 +99,7 @@ impl Commande<Panier> {
     /// - Comme `entete` à l'exercice 3 : pas de `push` (`E0596`), un nouveau `Vec` fait de l'ancien (`into_iter()`)
     ///   et de la nouvelle ligne.
     pub fn ajouter(self, article: &str, prix_centimes: u32) -> Self {
+        // Même schéma que `entete` (exercice 3) : `into_iter` puis `chain(once(..))`, et `..self` pour le reste.
         Commande {
             lignes: self
                 .lignes
@@ -115,6 +119,8 @@ impl Commande<Panier> {
     /// - Décidez AVANT de déplacer les champs : construire la `Commande<Validee>` puis rendre `Err(self)` donne
     ///   `E0382 use of partially moved value: self`.
     pub fn valider(self) -> Result<Commande<Validee>, Commande<Panier>> {
+        // On décide avant de déplacer quoi que ce soit : dans la branche `Err`, `self` est encore entier et repart
+        // tel quel. L'appelant récupère son panier au lieu de le perdre.
         if self.lignes.is_empty() {
             Err(self)
         } else {
@@ -141,6 +147,8 @@ impl Commande<Validee> {
         self,
         montant_centimes: u32,
     ) -> Result<Commande<Payee>, (Commande<Validee>, ErreurPaiement)> {
+        // `total()` emprunte `self` : on le calcule avant tout déplacement. Sur un montant faux, `self` repart
+        // dans l'erreur avec la raison. Le `format!` de la référence de paiement lit `self.client` avant son move.
         let attendu = self.total();
         if montant_centimes != attendu {
             return Err((
@@ -163,6 +171,7 @@ impl Commande<Validee> {
 impl Commande<Payee> {
     /// La référence du paiement.
     pub fn reference(&self) -> &str {
+        // N'existe que sur `Commande<Payee>` : aucune référence de paiement avant le paiement.
         &self.etat.reference
     }
 }

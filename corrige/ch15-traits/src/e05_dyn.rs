@@ -54,16 +54,22 @@ impl Statistique for Max {
 
 /// Les trois statistiques : `Moyenne`, `Min`, `Max`.
 pub fn toutes() -> Vec<Box<dyn Statistique>> {
+    // Le type de retour annoncé permet au compilateur de convertir chaque `Box<Moyenne>`, `Box<Min>`, `Box<Max>`
+    // en `Box<dyn Statistique>`.
     vec![Box::new(Moyenne), Box::new(Min), Box::new(Max)]
 }
 
 /// La statistique qui porte ce nom.
 pub fn par_nom(nom: &str) -> Option<Box<dyn Statistique>> {
+    // `into_iter()` pour rendre la `Box` elle-même : `iter()` ne donnerait qu'une référence vers un `Vec` local
+    // détruit à la fin de la fonction.
     toutes().into_iter().find(|s| s.nom() == nom)
 }
 
 /// `[("moyenne", …), ("min", …), ("max", …)]`.
 pub fn resumer(valeurs: &[f64]) -> Vec<(&'static str, Option<f64>)> {
+    // Chaque `s.calculer` passe par la vtable : la méthode est choisie à l'exécution.
+    // `nom()` rend un `&'static str`, le résultat ne dépend donc pas du `Vec` temporaire de `toutes()`.
     toutes()
         .iter()
         .map(|s| (s.nom(), s.calculer(valeurs)))

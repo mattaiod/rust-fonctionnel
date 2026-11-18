@@ -23,6 +23,9 @@ pub fn doubler_imperatif(nombres: &[i64]) -> Vec<i64> {
 ///   ``E0282: type annotations needed`` → `let doubles: Vec<i64> = …`. Ici, le type de retour de la fonction
 ///   suffit.
 pub fn doubler(nombres: &[i64]) -> Vec<i64> {
+    // Outils : `iter()`, `map(|n| …)`, `collect()`.
+    // `map` décrit le sort d'un élément, `collect` construit le `Vec`.
+    // Un `iterator` est lazy : sans `collect`, aucun élément n'est calculé.
     nombres.iter().map(|n| n * 2).collect()
 }
 

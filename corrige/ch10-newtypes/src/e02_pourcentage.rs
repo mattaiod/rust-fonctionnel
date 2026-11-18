@@ -30,6 +30,9 @@ impl TryFrom<i64> for Pourcentage {
     /// - Le champ est un `u8`, la valeur un `i64` : `Pourcentage(valeur)` donne `E0308 … expected u8, found i64`. Une
     ///   fois la borne vérifiée, la conversion `valeur as u8` ne perd rien.
     fn try_from(valeur: i64) -> Result<Self, Self::Error> {
+        // But : accepter 0..=100, refuser le reste en rendant la valeur fautive.
+        // La borne est vérifiée ici, une fois. Le `as u8` est sûr parce qu'il vient après : sans test, il tronquerait.
+        // L'erreur garde la valeur fautive, l'appelant peut l'afficher.
         if (0..=100).contains(&valeur) {
             Ok(Pourcentage(valeur as u8))
         } else {
@@ -41,6 +44,7 @@ impl TryFrom<i64> for Pourcentage {
 impl Pourcentage {
     /// La valeur, entre 0 et 100.
     pub fn valeur(self) -> u8 {
+        // But : lire le champ.
         self.0
     }
 
@@ -52,6 +56,8 @@ impl Pourcentage {
     ///   vous avez le droit de construire `Pourcentage(...)` directement : `100 - self.0` ne peut pas déborder,
     ///   l'invariant le garantit.
     pub fn complement(self) -> Pourcentage {
+        // But : construire directement, l'invariant garantit le résultat.
+        // Pas de `try_from` : `self.0 <= 100` par invariant, donc `100 - self.0` reste dans 0..=100 sans déborder.
         Pourcentage(100 - self.0)
     }
 }
@@ -63,6 +69,9 @@ impl Pourcentage {
 ///   `E0277 cannot multiply u64 by Pourcentage`, et avec `remise.valeur()` : `E0277 cannot multiply u64 by u8`.
 ///   Convertissez sans perte avec `u64::from(...)`.
 pub fn appliquer_remise(prix_centimes: u64, remise: Pourcentage) -> u64 {
+    // But : la même formule, sans aucune vérification : le type l'a déjà faite.
+    // Recevoir un `Pourcentage` prouve déjà que la remise vaut au plus 100 : aucun test de borne ici.
+    // `u64::from` ne compile que pour une conversion sans perte ; `as` compilerait même avec perte.
     prix_centimes - prix_centimes * u64::from(remise.valeur()) / 100
 }
 
@@ -74,6 +83,9 @@ pub fn appliquer_remise(prix_centimes: u64, remise: Pourcentage) -> u64 {
 ///   `.ok()`.
 /// - `parse()` sans type donne `E0284 type annotations needed` : écrivez `parse::<i64>()`.
 pub fn remise_saisie(prix_centimes: u64, saisie: &str) -> Option<u64> {
+    // But : parser à la frontière, puis appliquer ; une chaîne d'`Option`.
+    // Deux échecs possibles (pas un nombre, hors bornes) : `.ok()` les ramène tous les deux à `None`.
+    // `and_then` car `try_from(n).ok()` rend déjà une `Option` ; `map` donnerait une `Option<Option<_>>`.
     saisie
         .trim()
         .trim_end_matches('%')

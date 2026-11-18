@@ -35,6 +35,9 @@ pub fn afficher_bulletin(eleves: &[(String, i64)]) -> usize {
 /// - Si le compilateur dit ``E0308: expected `String`, found `&str` `` : vous rendez un `&str` ; passez par `format!`
 ///   ou `.to_string()`.
 pub fn ligne_bulletin(nom: &str, note: i64) -> String {
+    // Outils : un `if` qui choisit le mot, `format!`.
+    // Le `if` est une expression : il rend directement le mot, sans variable `mut`.
+    // Les deux branches rendent un `&str` littéral ; seul `format!` alloue.
     let decision = if note >= 10 { "admis" } else { "ajourné" };
     format!("{nom} : {note}/20, {decision}")
 }
@@ -47,6 +50,9 @@ pub fn ligne_bulletin(nom: &str, note: i64) -> String {
 /// - Si le compilateur dit ``E0308: expected `i64`, found `&i64` `` : passez `*note`.
 /// - `collect()` sait coller des `String` en une seule : le type de retour suffit à le guider.
 pub fn bulletin(eleves: &[(String, i64)]) -> String {
+    // Outils : `iter()`, `map(|(nom, note)| …)`, `format!("{}\n", …)`, `collect::<String>()`.
+    // La logique d'une ligne reste dans `ligne_bulletin` : on la réutilise, on ne la recopie pas.
+    // `collect` concatène les `String` en une seule (`String` implémente `FromIterator<String>`).
     eleves
         .iter()
         .map(|(nom, note)| format!("{}\n", ligne_bulletin(nom, *note)))
@@ -59,6 +65,8 @@ pub fn bulletin(eleves: &[(String, i64)]) -> String {
 /// - Dans `filter`, l'élément arrive par référence : avec `|(_, note)|`, `note` est un `&i64`.
 /// - Si le compilateur dit ``E0308: expected `&i64`, found integer`` : comparez `*note >= 10`.
 pub fn nombre_admis(eleves: &[(String, i64)]) -> usize {
+    // Outils : `iter()`, `filter`, `count()`.
+    // `filter` puis `count` : on compte sans construire de `Vec` intermédiaire.
     eleves.iter().filter(|(_, note)| *note >= 10).count()
 }
 

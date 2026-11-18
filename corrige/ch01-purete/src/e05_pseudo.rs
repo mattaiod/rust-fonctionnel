@@ -21,6 +21,9 @@
 /// - Si le compilateur dit ``E0384: cannot assign twice to immutable variable`` : pas de `pseudo = …`, mais un
 ///   nouveau `let pseudo = …` (le *shadowing*).
 pub fn normaliser_pseudo(brut: &str) -> String {
+    // Chaque `let pseudo` cache le précédent (shadowing) : la suite de transformations s'écrit sans `mut`.
+    // La `String` de `to_lowercase` est rangée avant le découpage, sinon les `&str` pointeraient dans un temporaire.
+    // `split_whitespace` ignore déjà les blancs du début et de la fin : `trim` est redondant, gardé pour la lisibilité.
     let pseudo = brut.trim();
     let pseudo = pseudo.to_lowercase();
     let mots: Vec<&str> = pseudo.split_whitespace().collect();

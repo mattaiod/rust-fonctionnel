@@ -75,6 +75,10 @@ pub fn inscrire_naif(pseudo: &str, email: &str, age: &str) -> Result<Inscription
 ///   décide des deux cas d'un coup.
 /// - La longueur se compte en caractères (`chars().count()`), pas en octets.
 pub fn valider_pseudo(pseudo: &str) -> Result<String, ErreurChamp> {
+    // But : d'abord la longueur (en caractères), puis le premier caractère interdit.
+    // Longueur par retour anticipé, puis `find` cherche le premier caractère fautif.
+    // `map_or` décide des deux cas : `None` (rien de fautif) donne `Ok`, `Some(c)` donne l'erreur.
+    // Le `Ok(...)` passé à `map_or` est construit même en cas d'erreur ; `map_or_else` le retarderait.
     let longueur = pseudo.chars().count();
     if !(3..=16).contains(&longueur) {
         return Err(ErreurChamp::PseudoLongueur(longueur));
@@ -94,6 +98,9 @@ pub fn valider_pseudo(pseudo: &str) -> Result<String, ErreurChamp> {
 /// - `split('@')` sur `a@b@c.fr` donne trois morceaux : vérifiez qu'il y a exactement un `@`, pas seulement qu'il y
 ///   en a un.
 pub fn valider_email(email: &str) -> Result<String, ErreurChamp> {
+    // But : un seul `@`, une partie locale non vide, un domaine en au moins deux morceaux non vides.
+    // Un seul `match` à garde : tout ce qui n'est pas le cas valide tombe dans `_`.
+    // `split_once` coupe au premier `@` : un second `@` resterait dans le domaine, d'où `!domaine.contains('@')`.
     match email.split_once('@') {
         Some((local, domaine))
             if !local.is_empty()
@@ -114,6 +121,9 @@ pub fn valider_email(email: &str) -> Result<String, ErreurChamp> {
 ///   `String`, `map_err` lui passe une `ParseIntError`. Écrivez la closure `|_| ...` qui fabrique la variante avec le
 ///   texte reçu.
 pub fn valider_age(age: &str) -> Result<u8, ErreurChamp> {
+    // But : lisible d'abord, assez âgé ensuite.
+    // `parse::<u8>()` refuse déjà les négatifs et tout ce qui dépasse 255 : il ne reste que le minimum à tester.
+    // `and_then` enchaîne un second test qui peut échouer ; `map` donnerait un `Result` dans un `Result`.
     age.trim()
         .parse::<u8>()
         .map_err(|_| ErreurChamp::AgeIllisible(age.to_string()))
@@ -137,12 +147,16 @@ pub fn valider_age(age: &str) -> Result<u8, ErreurChamp> {
 ///   `E0277 a value of type Vec<ErreurChamp> cannot be built from an iterator over elements of type Option<ErreurChamp>`.
 ///   Aplatissez-les d'abord (cours de l'exercice).
 pub fn inscrire(pseudo: &str, email: &str, age: &str) -> Result<Inscription, Vec<ErreurChamp>> {
+    // But : valider les trois champs, puis `match` sur le tuple des trois résultats.
+    // Les trois validations tournent avant le `match`, sans `?` : c'est ce qui permet de rendre toutes les erreurs.
     match (
         valider_pseudo(pseudo),
         valider_email(email),
         valider_age(age),
     ) {
         (Ok(pseudo), Ok(email), Ok(age)) => Ok(Inscription { pseudo, email, age }),
+        // Atteint seulement si un champ a échoué : `err()` garde les `Err` en `Some`, `flatten` jette les `None`.
+        // Le `Vec` n'est donc jamais vide (un `NonVide` du chapitre 10 le dirait dans le type).
         (pseudo, email, age) => Err([pseudo.err(), email.err(), age.err()]
             .into_iter()
             .flatten()

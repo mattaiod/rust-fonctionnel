@@ -61,6 +61,7 @@ impl FromStr for Niveau {
     ///   `E0308 … expected Result<Niveau, ErreurLog>, found Niveau`. Le dernier bras attrape le reste et le garde
     ///   dans l'erreur (`to_string()`).
     fn from_str(texte: &str) -> Result<Niveau, ErreurLog> {
+        // Le dernier bras lie la valeur inconnue à `autre` pour la garder dans l'erreur.
         match texte {
             "DEBUG" => Ok(Niveau::Debug),
             "INFO" => Ok(Niveau::Info),
@@ -83,6 +84,9 @@ impl FromStr for Niveau {
 ///   qui panique sur une chaîne trop courte.
 /// - `niveau.parse()?` marche tel quel : votre `FromStr for Niveau` rend déjà une `ErreurLog`.
 pub fn parser_ligne(ligne: &str) -> Result<Entree, ErreurLog> {
+    // `ok_or` change chaque `Option` en `Result` pour que `?` s'arrête au premier découpage raté.
+    // `get(..2)` rend `None` sur une chaîne trop courte là où `[..2]` paniquerait ; `ok_or_else` ne fabrique
+    // la `String` d'erreur que si l'heure est invalide.
     let (horodatage, reste) = ligne.split_once(' ').ok_or(ErreurLog::LigneIncomplete)?;
     let (niveau, reste) = reste.split_once(' ').ok_or(ErreurLog::LigneIncomplete)?;
     let (module, message) = reste.split_once(": ").ok_or(ErreurLog::ModuleManquant)?;
@@ -110,6 +114,9 @@ pub fn parser_ligne(ligne: &str) -> Result<Entree, ErreurLog> {
 /// - `max_by_key` rend le DERNIER maximum : pour avoir l'heure la plus tôt à égalité, la clé est
 ///   `(nombre, std::cmp::Reverse(heure))`.
 pub fn analyser(journal: &str) -> Rapport {
+    // On garde toutes les lectures : le nombre d'invalides est la différence des deux longueurs.
+    // `as_ref().ok()` emprunte les `Entree` sans les sortir de `lectures`.
+    // Clé `(nombre, Reverse(heure))` : à nombre égal, la plus petite heure fait la plus grande clé et gagne.
     let lectures: Vec<Result<Entree, ErreurLog>> = journal
         .lines()
         .filter(|ligne| !ligne.trim().is_empty())

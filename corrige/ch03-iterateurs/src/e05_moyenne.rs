@@ -17,6 +17,8 @@
 /// - Si le compilateur dit ``E0308: expected `Option<f64>`, found `f64` `` : la valeur va dans un `Some(…)` (c'est ce
 ///   que fait `then`).
 pub fn moyenne(notes: &[f64]) -> Option<f64> {
+    // `then` prend une closure : la division n'est calculée que si la liste est non vide, jamais de `0.0 / 0.0` (NaN).
+    // `sum::<f64>()` fixe le type de la somme, que la division ne permet pas de déduire ; `as f64` convertit la taille.
     (!notes.is_empty()).then(|| notes.iter().sum::<f64>() / notes.len() as f64)
 }
 

@@ -18,6 +18,8 @@ use std::thread;
 
 /// Les mesures converties en Fahrenheit, envoyées par un thread à travers un channel.
 pub fn convertir(celsius: Vec<f64>) -> Vec<f64> {
+    // `tx` est déplacé dans le thread : quand il finit, `tx` est détruit et `rx.iter()` s'arrête.
+    // Un seul producteur, donc l'ordre de réception est l'ordre d'envoi. Le channel suffit à attendre, pas de `join`.
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         celsius

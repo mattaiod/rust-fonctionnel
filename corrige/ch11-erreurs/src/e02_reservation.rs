@@ -50,6 +50,9 @@ impl fmt::Display for ErreurReservation {
     ///   (`E0308 … expected Result<(), Error>, found &str`). Dans la chaîne de format, `{demandees}` marche,
     ///   `{self.champ}` non : `invalid format string: field access isn't supported`.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // But : une phrase par variante, mot pour mot celles de `reserver_naif`.
+        // Les phrases sont écrites ici, une seule fois ; le reste du code ne manipule que des variantes.
+        // `match self` donne des références : `demandees` est un `&u32`, que `write!` affiche sans `*`.
         match self {
             Self::NomVide => write!(f, "nom vide"),
             Self::TropDePersonnes { demandees } => write!(
@@ -82,6 +85,8 @@ pub fn reserver(
     personnes: u32,
     places_restantes: u32,
 ) -> Result<u32, ErreurReservation> {
+    // But : les règles de `reserver_naif`, dans le même ordre, avec `ErreurReservation`.
+    // `if / else if / else` sans `return` : chaque branche est une expression qui rend le `Result`.
     if nom.trim().is_empty() {
         Err(ErreurReservation::NomVide)
     } else if personnes > MAX_PAR_TABLE {
@@ -90,6 +95,7 @@ pub fn reserver(
         })
     } else {
         places_restantes
+            // `checked_sub` rend `None` s'il manque des places : test et soustraction ne font qu'un, sans débordement.
             .checked_sub(personnes)
             .ok_or(ErreurReservation::Complet {
                 demandees: personnes,

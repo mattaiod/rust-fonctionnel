@@ -22,6 +22,9 @@ pub fn index_de_naif(elements: &[i64], cherche: i64) -> i64 {
 /// - Si le compilateur dit `` error[E0277]: can't compare `&i64` with `i64` `` : la closure reçoit un `&i64`. Écrivez
 ///   `|&e| e == cherche`, ou `*e == cherche`.
 pub fn index_de(elements: &[i64], cherche: i64) -> Option<usize> {
+    // But : la même recherche, sans valeur sentinelle.
+    // `position` rend déjà une `Option<usize>` : l'absence est dans le type, plus besoin de `-1`.
+    // Le motif `|&e|` déstructure la référence que reçoit la closure.
     elements.iter().position(|&e| e == cherche)
 }
 
@@ -37,6 +40,10 @@ pub fn index_de(elements: &[i64], cherche: i64) -> Option<usize> {
 /// - Si le compilateur dit `` expected `Option<i64>`, found `Option<&i64>` `` : `.copied()` sur l'`Option` copie le
 ///   nombre.
 pub fn suivant_de(elements: &[i64], cherche: i64) -> Option<i64> {
+    // But : réutiliser `index_de` et enchaîner une deuxième étape qui peut échouer.
+    // `and_then` enchaîne une étape qui peut échouer : si `index_de` rend `None`, la closure n'est pas appelée.
+    // `get(i + 1)` rend `None` après la fin, là où `elements[i + 1]` paniquerait. Avec `map` au lieu d'`and_then`,
+    // on obtiendrait une `Option<Option<i64>>`.
     index_de(elements, cherche).and_then(|i| elements.get(i + 1).copied())
 }
 

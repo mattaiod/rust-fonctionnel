@@ -34,6 +34,10 @@ pub struct ErreurNombre {
 /// - `"".split(',')` donne **un** morceau vide, pas zéro : le texte vide est un cas à part. Et `enumerate` compte à
 ///   partir de 0, la position humaine à partir de 1.
 pub fn parser_liste(texte: &str) -> Result<Vec<i64>, ErreurNombre> {
+    // But : une seule chaîne, qui s'arrête au premier morceau illisible et dit lequel.
+    // Le texte vide est traité à part : `"".split(',')` rend un morceau vide, qui ne se lit pas comme un nombre.
+    // `collect` vers un `Result<Vec<_>, _>` s'arrête à la première erreur et la rend, sinon il rend `Ok` avec tous
+    // les nombres. `enumerate` compte à partir de 0, d'où `i + 1` pour une position lisible par un humain.
     if texte.trim().is_empty() {
         return Ok(Vec::new());
     }
@@ -57,6 +61,9 @@ pub fn parser_liste(texte: &str) -> Result<Vec<i64>, ErreurNombre> {
 ///   iterator over elements of type `&i64` `` : `?` a déjà ouvert le `Result`, la somme est un simple `i64`.
 ///   Remettez-la dans un `Ok(…)`.
 pub fn somme_liste(texte: &str) -> Result<i64, ErreurNombre> {
+    // But : réutiliser `parser_liste` ; une ligne suffit.
+    // `?` sort tout de suite avec l'erreur de `parser_liste` ; en cas de succès il donne le `Vec`, qu'on somme
+    // puis qu'on remet dans `Ok`. Variante : `parser_liste(texte).map(|nombres| nombres.iter().sum())`.
     Ok(parser_liste(texte)?.iter().sum())
 }
 

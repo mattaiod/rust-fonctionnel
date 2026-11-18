@@ -53,6 +53,10 @@ pub fn profondeur_imperatif(arbre: &Arbre) -> usize {
 /// - Si le compilateur dit `` error[E0507]: cannot move out of `arbre` as enum variant `Noeud` which is behind a shared
 ///   reference `` : vous avez écrit `match *arbre`. On ne sort pas une `Box` d'un arbre emprunté : `match arbre`.
 pub fn somme_arbre(arbre: &Arbre) -> i64 {
+    // Une feuille vaut 0 ; un nœud vaut sa valeur plus la somme de ses deux sous-arbres.
+    // La fonction suit la forme du type : `Feuille` est le cas de base, et chaque appel descend dans un sous-arbre
+    // plus petit, donc on finit toujours sur des feuilles. `gauche` est un `&Box<Arbre>` : la deref coercion
+    // le passe là où `somme_arbre` attend un `&Arbre`, sans étoile.
     match arbre {
         Arbre::Feuille => 0,
         Arbre::Noeud(gauche, valeur, droite) => somme_arbre(gauche) + valeur + somme_arbre(droite),
@@ -61,6 +65,8 @@ pub fn somme_arbre(arbre: &Arbre) -> i64 {
 
 /// Nombre de nœuds sur le plus long chemin de la racine à une feuille (0 pour une feuille seule).
 pub fn profondeur(arbre: &Arbre) -> usize {
+    // Une feuille a une profondeur nulle ; un nœud, un de plus que le plus profond de ses sous-arbres.
+    // Même plan que `somme_arbre` ; `max` combine les deux sous-arbres au lieu de les additionner.
     match arbre {
         Arbre::Feuille => 0,
         Arbre::Noeud(gauche, _, droite) => 1 + profondeur(gauche).max(profondeur(droite)),

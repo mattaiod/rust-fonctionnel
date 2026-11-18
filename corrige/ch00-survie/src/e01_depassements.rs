@@ -23,6 +23,9 @@ pub fn depassements_imperatif(mesures: &[i64], seuil: i64) -> Vec<i64> {
 ///
 /// Pour chaque mesure strictement supérieure au seuil, de combien elle le dépasse, dans l'ordre.
 pub fn depassements(mesures: &[i64], seuil: i64) -> Vec<i64> {
+    // Outils : `iter()`, `copied()`, `filter(|&m| …)`, `map`, `collect()`.
+    // `copied()` en tête de chaîne : toute la suite manipule des `i64`, plus de `&` à gérer.
+    // Le motif `|&m|` retire la référence que `filter` ajoute pour son prédicat.
     mesures
         .iter()
         .copied()

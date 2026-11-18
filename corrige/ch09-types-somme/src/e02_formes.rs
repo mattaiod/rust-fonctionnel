@@ -47,6 +47,9 @@ impl Forme {
     /// - `match self` (un `&Forme`) lie des `&f64`, `match *self` les copie en `f64` (`Forme` est `Copy`) : les deux
     ///   compilent ici.
     pub fn aire(&self) -> f64 {
+        // But : un `match` qui déstructure chaque variante.
+        // `match *self` lie les champs par copie (`f64` est `Copy`) : `rayon` est un `f64`, pas un `&f64`, et les
+        // calculs s'écrivent sans étoile. Chaque variante n'expose que ses propres champs : pas de `b` inutile.
         match *self {
             Forme::Cercle { rayon } => PI * rayon * rayon,
             Forme::Rectangle { largeur, hauteur } => largeur * hauteur,
@@ -56,6 +59,8 @@ impl Forme {
 
     /// Le nom de la forme, en français et au singulier.
     pub fn nom(&self) -> &'static str {
+        // But : un `match` qui ignore les données (`{ .. }`).
+        // `{ .. }` ignore tous les champs. `&'static str` : on rend des littéraux, stockés dans le binaire.
         match self {
             Forme::Cercle { .. } => "cercle",
             Forme::Rectangle { .. } => "rectangle",
@@ -66,6 +71,8 @@ impl Forme {
 
 /// La somme des aires.
 pub fn aire_totale(formes: &[Forme]) -> f64 {
+    // But : chapitre 3, avec la méthode écrite plus haut.
+    // `Forme::aire` se passe comme une fonction : `iter()` donne des `&Forme`, le `&self` que prend la méthode.
     formes.iter().map(Forme::aire).sum()
 }
 
@@ -76,6 +83,9 @@ pub fn aire_totale(formes: &[Forme]) -> f64 {
 ///   of type `&Forme` `` : `.copied()` avant `collect` (`Forme` est `Copy`).
 /// - `matches!(valeur, Motif { … } if condition)` rend un `bool`, parfait pour un `filter`.
 pub fn carres(formes: &[Forme]) -> Vec<Forme> {
+    // But : un motif avec garde dans un `filter` (pensez à `matches!`).
+    // `matches!` change un motif, garde comprise, en `bool` : ce qu'attend `filter`. Dans la garde, `largeur` et
+    // `hauteur` sont des `&f64` ; `==` compare les valeurs pointées. `copied()` marche parce que `Forme` est `Copy`.
     formes
         .iter()
         .filter(|f| matches!(f, Forme::Rectangle { largeur, hauteur } if largeur == hauteur))

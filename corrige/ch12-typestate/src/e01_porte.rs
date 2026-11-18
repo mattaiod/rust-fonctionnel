@@ -102,6 +102,7 @@ pub struct Porte<E> {
 impl<E> Porte<E> {
     /// Nombre d'ouvertures depuis la pose, dans n'importe quel état.
     pub fn ouvertures(&self) -> u32 {
+        // Méthode de `impl<E>` : écrite une fois, elle sert les trois états. `u32` est `Copy`, on le rend par valeur.
         self.ouvertures
     }
 }
@@ -115,6 +116,9 @@ impl Porte<Fermee> {
     ///   `E0308 … expected PhantomData<Fermee>, found Fermee`. Le type de retour (`Self`, donc `Porte<Fermee>`)
     ///   suffit à fixer l'état.
     pub fn neuve() -> Self {
+        // But : construire l'état de départ.
+        // `PhantomData` a une taille nulle : il ne stocke rien et sert seulement à faire apparaître `E` dans le type.
+        // Le type de retour (`Porte<Fermee>`) fixe l'état ; la porte ne range aucune valeur d'état.
         Porte {
             ouvertures: 0,
             _etat: PhantomData,
@@ -129,6 +133,9 @@ impl Porte<Fermee> {
     /// - `..self` et `Self { ... }` gardent l'ancien type (ici `Self` veut dire `Porte<Fermee>`) : même erreur
     ///   `E0308`. Écrivez `Porte { ... }` et listez les champs.
     pub fn ouvrir(self) -> Porte<Ouverte> {
+        // But : rendre la même porte, dans un autre type.
+        // Le schéma de toutes les transitions : `self` pris par valeur consomme l'ancienne porte, on en construit
+        // une nouvelle dont seul le type change. Pas de `..self` : il garderait le type `Porte<Fermee>`.
         Porte {
             ouvertures: self.ouvertures + 1,
             _etat: PhantomData,
@@ -142,6 +149,7 @@ impl Porte<Fermee> {
     /// - Côté appelant, `self` est consommé : réutiliser l'ancienne porte donne `E0382 use of moved value: fermee`.
     ///   Gardez la valeur rendue (`let ouverte = fermee.ouvrir();`).
     pub fn verrouiller(self) -> Porte<Verrouillee> {
+        // Même schéma, compteur inchangé. L'appelant qui réutilise sa `Porte<Fermee>` après l'appel a un E0382.
         Porte {
             ouvertures: self.ouvertures,
             _etat: PhantomData,
@@ -152,6 +160,7 @@ impl Porte<Fermee> {
 impl Porte<Ouverte> {
     /// Ouverte → fermée.
     pub fn fermer(self) -> Porte<Fermee> {
+        // Même schéma : seul le type change.
         Porte {
             ouvertures: self.ouvertures,
             _etat: PhantomData,
@@ -162,6 +171,7 @@ impl Porte<Ouverte> {
 impl Porte<Verrouillee> {
     /// Verrouillée → fermée.
     pub fn deverrouiller(self) -> Porte<Fermee> {
+        // Même schéma. `ouvrir` n'existe pas sur `Porte<Verrouillee>` : l'appel ne compile pas.
         Porte {
             ouvertures: self.ouvertures,
             _etat: PhantomData,

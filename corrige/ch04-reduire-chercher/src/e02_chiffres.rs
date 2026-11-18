@@ -22,6 +22,9 @@ pub fn nombre_depuis_chiffres_imperatif(chiffres: &[i64]) -> i64 {
 /// - Si le compilateur dit ``E0308: expected `i64`, found `()` `` : le bloc finit par un `;` et ne rend rien ; sa
 ///   dernière ligne doit être la valeur, sans `;`.
 pub fn nombre_depuis_chiffres(chiffres: &[i64]) -> i64 {
+    // Outils : `iter()`, `fold(0, |acc, chiffre| …)`.
+    // Départ à `0` : la liste vide rend 0, et le premier chiffre devient `0 * 10 + c`, soit `c`.
+    // `acc * 10 + chiffre` ajoute un `&i64` à un `i64` : l'opérateur `+` accepte la référence à droite.
     chiffres.iter().fold(0, |acc, chiffre| acc * 10 + chiffre)
 }
 

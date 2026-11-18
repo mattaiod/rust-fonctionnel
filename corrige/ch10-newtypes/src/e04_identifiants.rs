@@ -76,6 +76,9 @@ pub fn trouver_commande(
     id_client: IdUtilisateur,
     id_commande: IdCommande,
 ) -> Option<&Commande> {
+    // But : la même recherche ; le compilateur vérifie maintenant ce que vous comparez.
+    // Le corps est celui de la version naïve : tout le gain est dans la signature.
+    // `==` compare deux `IdCommande` (`derive(PartialEq)`), mais refuse un `IdCommande` face à un `IdUtilisateur`.
     commandes
         .iter()
         .find(|c| c.id == id_commande && c.client == id_client)
@@ -88,6 +91,9 @@ pub fn trouver_commande(
 ///   `E0277 a value of type u64 cannot be made by summing an iterator over elements of type &Commande`. Passez
 ///   d'abord des commandes aux montants.
 pub fn total_depense(commandes: &[Commande], client: IdUtilisateur) -> u64 {
+    // But : chapitre 3.
+    // Les newtypes ne gênent pas les combinators. `montant_centimes` pourrait aussi devenir un `Centimes`,
+    // au prix d'un `impl Sum` pour garder le `.sum()`.
     commandes
         .iter()
         .filter(|c| c.client == client)
@@ -102,6 +108,8 @@ pub fn total_depense(commandes: &[Commande], client: IdUtilisateur) -> u64 {
 ///   `E0277 a value of type Vec<IdCommande> cannot be built from an iterator over elements of type &IdCommande`.
 ///   `IdCommande` est `Copy` : `c.id` suffit, sans `&`.
 pub fn commandes_de(commandes: &[Commande], client: IdUtilisateur) -> Vec<IdCommande> {
+    // But : chapitre 3 ; le type de retour dit ce que contient la liste.
+    // `c.id` copie l'identifiant (`IdCommande` est `Copy`) : on obtient des valeurs, pas des références.
     commandes
         .iter()
         .filter(|c| c.client == client)

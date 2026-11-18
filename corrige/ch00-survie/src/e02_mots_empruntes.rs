@@ -28,6 +28,9 @@ pub fn commencant_par_imperatif(texte: &str, lettre: char) -> Vec<String> {
 ///
 /// Les mots de `texte` qui commencent par `lettre` (sensible à la casse), dans l'ordre, empruntés à `texte`.
 pub fn commencant_par(texte: &str, lettre: char) -> Vec<&str> {
+    // Outils : `split_whitespace()`, `filter(|mot| …)`, `starts_with`, `collect()`.
+    // Aucun `map` : les `&str` de `split_whitespace` pointent déjà dans `texte`, on les garde tels quels.
+    // Aucune allocation par mot, seul le `Vec` final est alloué.
     texte
         .split_whitespace()
         .filter(|mot| mot.starts_with(lettre))

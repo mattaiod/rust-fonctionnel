@@ -23,12 +23,14 @@ pub struct Mesure {
 
 impl fmt::Display for Mesure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // `write!` rend le `fmt::Result` du `Formatter`, renvoyé tel quel. `Display` donne aussi `to_string()`.
         write!(f, "{} {}", self.valeur, self.unite)
     }
 }
 
 impl From<f64> for Mesure {
     fn from(valeur: f64) -> Self {
+        // `From<f64>` donne aussi `Into<Mesure>` pour `f64` : `let m: Mesure = 21.5.into();` marche.
         Mesure {
             valeur,
             unite: String::from("°C"),

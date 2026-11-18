@@ -22,6 +22,8 @@ use crate::e03_controleur as controleur;
 
 /// L'application complète, prête à servir.
 pub fn application(repo: MesuresEnMemoire) -> Router {
+    // `{id}` est la syntaxe des paramètres de chemin en Axum 0.8 (`:id` dans les versions d'avant).
+    // `with_state` donne le repository à tous les extracteurs `State` et rend un `Router<()>` prêt à servir.
     Router::new()
         .route("/capteurs/{id}/mesures", post(controleur::ajouter))
         .route("/capteurs/{id}/stats", get(controleur::stats))

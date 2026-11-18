@@ -64,6 +64,9 @@ pub enum ErreurCommande {
 /// - `Expediee` porte un champ : `` error[E0533]: expected unit struct, unit variant or constant, found struct variant
 ///   `EtatCommande::Expediee` `` → `EtatCommande::Expediee { .. }`.
 pub fn payer(etat: EtatCommande) -> Result<EtatCommande, ErreurCommande> {
+    // But : un `match`, un bras par état.
+    // L'état est pris par valeur : la transition consomme l'ancien, qu'on ne peut plus utiliser ensuite.
+    // Une commande expédiée a forcément été payée, d'où `DejaPayee` pour elle aussi.
     match etat {
         EtatCommande::EnAttente => Ok(EtatCommande::Payee),
         EtatCommande::Payee | EtatCommande::Expediee { .. } => Err(ErreurCommande::DejaPayee),
@@ -78,6 +81,8 @@ pub fn payer(etat: EtatCommande) -> Result<EtatCommande, ErreurCommande> {
 /// - Le champ `numero_suivi` attend une `String`, le paramètre est un `&str` : `` expected `String`, found `&str` `` →
 ///   `.to_string()`.
 pub fn expedier(etat: EtatCommande, numero_suivi: &str) -> Result<EtatCommande, ErreurCommande> {
+    // But : un `match`, un bras par état.
+    // Seul `Payee` mène à `Ok` ; chacun des autres bras nomme la raison du refus.
     match etat {
         EtatCommande::Payee => Ok(EtatCommande::Expediee {
             numero_suivi: numero_suivi.to_string(),
@@ -90,6 +95,8 @@ pub fn expedier(etat: EtatCommande, numero_suivi: &str) -> Result<EtatCommande, 
 
 /// Annuler : depuis `EnAttente` ou `Payee`. Expédiée → `DejaExpediee` ; annulée → `DejaAnnulee`.
 pub fn annuler(etat: EtatCommande) -> Result<EtatCommande, ErreurCommande> {
+    // But : un `match` ; deux états mènent au même résultat.
+    // Pas de `_` : un état ajouté plus tard devra être traité ici, le compilateur y veillera.
     match etat {
         EtatCommande::EnAttente | EtatCommande::Payee => Ok(EtatCommande::Annulee),
         EtatCommande::Expediee { .. } => Err(ErreurCommande::DejaExpediee),
@@ -103,6 +110,8 @@ pub fn annuler(etat: EtatCommande) -> Result<EtatCommande, ErreurCommande> {
 /// - `match etat` sur un `&EtatCommande` lie `numero_suivi: &String` ; `Some(numero_suivi)` devient tout seul une
 ///   `Option<&str>`. Avec `.clone()` : `` expected `&str`, found `String` ``.
 pub fn numero_suivi(etat: &EtatCommande) -> Option<&str> {
+    // But : un seul état en porte un.
+    // Le `_` est un choix : un futur état qui porterait un numéro serait oublié sans erreur du compilateur.
     match etat {
         EtatCommande::Expediee { numero_suivi } => Some(numero_suivi),
         _ => None,
@@ -116,6 +125,9 @@ pub fn numero_suivi(etat: &EtatCommande) -> Option<&str> {
 ///   `and_then(expedier)` ne suffit pas, `expedier` veut aussi le numéro. Une closure le lui passe.
 /// - Si le compilateur dit `` found `Result<Result<EtatCommande, …>, …>` `` : `map` → `and_then`.
 pub fn payer_puis_expedier(numero: &str) -> Result<EtatCommande, ErreurCommande> {
+    // But : le railway, en une ligne.
+    // `and_then` n'appelle `expedier` que si `payer` a réussi ; sinon l'erreur traverse telle quelle.
+    // Variante avec `?` : `expedier(payer(EtatCommande::EnAttente)?, numero)`.
     payer(EtatCommande::EnAttente).and_then(|payee| expedier(payee, numero))
 }
 

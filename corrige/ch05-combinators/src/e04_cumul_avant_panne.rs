@@ -26,6 +26,9 @@ pub fn cumul_avant_panne_imperatif(releves: &[Option<f64>]) -> f64 {
 /// - Si le compilateur dit `` error[E0308]: mismatched types … expected `Option<_>`, found `&Option<f64>` `` :
 ///   `Option<f64>` est `Copy`, `*releve` en donne une copie (ou `.copied()` juste après `iter()`).
 pub fn cumul_avant_panne(releves: &[Option<f64>]) -> f64 {
+    // Ouvrir chaque relevé tant qu'il contient une valeur, s'arrêter au premier vide, sommer.
+    // `map_while` ouvre chaque `Some` et s'arrête au premier `None` : rien après la panne n'est lu.
+    // `*releve` copie l'`Option<f64>` (elle est `Copy`) : la closure rend une `Option`, pas une référence.
     releves.iter().map_while(|releve| *releve).sum()
 }
 

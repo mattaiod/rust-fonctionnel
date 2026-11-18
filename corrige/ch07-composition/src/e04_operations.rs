@@ -41,6 +41,10 @@ pub fn appliquer_imperatif(operations: &[Operation], depart: i32) -> i32 {
 /// - Si le compilateur dit `` error[E0373]: closure may outlive the current function, but it borrows `n` `` : il manque
 ///   `move` devant la closure.
 pub fn vers_fonction(operation: &Operation) -> Box<dyn Fn(i32) -> i32> {
+    // Une branche par variante, chacune rend une closure en boîte ; la closure doit posséder le nombre qu'elle utilise.
+    // `match *operation` lie `n` par copie (`i32` est `Copy`) : `n` est un `i32`, pas un `&i32`. `move` met ce `n`
+    // dans la closure ; sans lui, elle l'emprunterait et ne pourrait pas sortir de la fonction. Les trois closures
+    // ont des types différents : `Box<dyn Fn>` leur donne un type commun.
     match *operation {
         Operation::Ajouter(n) => Box::new(move |x| x + n),
         Operation::Multiplier(n) => Box::new(move |x| x * n),
@@ -57,8 +61,17 @@ pub fn vers_fonction(operation: &Operation) -> Box<dyn Fn(i32) -> i32> {
 ///   `etapes.iter()`, pas `into_iter()`.
 pub fn composer_operations(operations: &[Operation]) -> impl Fn(i32) -> i32 {
     // Traduire une seule fois, au moment de composer, et pas à chaque appel.
-    let etapes: Vec<Box<dyn Fn(i32) -> i32>> = { operations.iter().map(vers_fonction).collect() };
-    move |depart| etapes.iter().fold(depart, |valeur, etape| etape(valeur))
+    let etapes: Vec<Box<dyn Fn(i32) -> i32>> = {
+        // Chaque opération devient sa fonction.
+        // `vers_fonction` se passe par son nom : `iter()` donne des `&Operation`, ce qu'elle prend.
+        operations.iter().map(vers_fonction).collect()
+    };
+    move |depart| {
+        // Faire passer la valeur dans toutes les étapes, dans l'ordre, en la transportant d'une étape à la suivante.
+        // L'accumulateur du `fold` est la valeur elle-même : il part de `depart`, chaque étape rend le suivant.
+        // La closure possède `etapes` (le `move` plus haut) : la traduction a eu lieu une fois, pas à chaque appel.
+        etapes.iter().fold(depart, |valeur, etape| etape(valeur))
+    }
 }
 
 #[cfg(test)]

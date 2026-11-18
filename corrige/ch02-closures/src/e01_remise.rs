@@ -28,7 +28,11 @@ pub fn appliquer_remise_imperatif(prix: &[f64], pourcent: f64) -> Vec<f64> {
 /// - Le `move` est déjà écrit ; sans lui :
 ///   ``E0373: closure may outlive the current function, but it borrows `pourcent` ``.
 pub fn remise(pourcent: f64) -> impl Fn(f64) -> f64 {
-    move |prix| prix * (1.0 - pourcent / 100.0)
+    move |prix| {
+        // Le corps de la closure : la formule, avec le `pourcent` capturé.
+        // `pourcent` est un `f64`, donc `Copy` : le `move` en range une copie dans la closure, qui survit à `remise`.
+        prix * (1.0 - pourcent / 100.0)
+    }
 }
 
 /// Version fonctionnelle : la remise fabriquée une fois, appliquée à chaque prix.
@@ -39,6 +43,9 @@ pub fn remise(pourcent: f64) -> impl Fn(f64) -> f64 {
 ///   `.copied()` avant le `map`.
 /// - `map(remise(pourcent))` passe la closure elle-même : pas de `|p| …` autour.
 pub fn appliquer_remise(prix: &[f64], pourcent: f64) -> Vec<f64> {
+    // Outils : `iter()`, `copied()`, `map(remise(pourcent))`, `collect()`.
+    // `remise(pourcent)` est construite une fois et passée telle quelle à `map`, sans `|p| …` autour.
+    // `copied()` car la closure attend un `f64` et `iter()` donne des `&f64`.
     prix.iter().copied().map(remise(pourcent)).collect()
 }
 

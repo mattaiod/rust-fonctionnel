@@ -122,6 +122,7 @@ impl RequeteBuilder<SansUrl> {
     /// - Le champ `url` est un état, pas une `Option` : `url: None` donne
     ///   `E0308 … expected SansUrl, found Option<_>`.
     pub fn nouveau() -> Self {
+        // L'absence d'URL est la valeur `SansUrl`, pas un `None` : elle est dans le type, le compilateur la voit.
         RequeteBuilder {
             methode: Methode::default(),
             entetes: Vec::new(),
@@ -137,6 +138,9 @@ impl RequeteBuilder<SansUrl> {
     ///   Listez les champs.
     /// - `AvecUrl` possède une `String` : `AvecUrl(url)` donne `E0308 … expected String, found &str`.
     pub fn url(self, url: &str) -> RequeteBuilder<AvecUrl> {
+        // But : tout garder, sauf l'état.
+        // Transition : `self` consommé, builder reconstruit champ par champ, seul `url` change de type.
+        // `url` n'existe que sur `RequeteBuilder<SansUrl>` : la donner deux fois ne compile pas.
         RequeteBuilder {
             methode: self.methode,
             entetes: self.entetes,
@@ -154,6 +158,8 @@ impl<U> RequeteBuilder<U> {
     ///   Le type ne change pas : un nouveau `RequeteBuilder { methode, ..self }` fait l'affaire (`..self` toujours en
     ///   dernier, sans virgule après : `cannot use a comma after the base struct`).
     pub fn methode(self, methode: Methode) -> Self {
+        // Dans `impl<U>`, le réglage marche avant comme après l'URL et rend le même état.
+        // Le type ne change pas, donc `..self` est permis.
         RequeteBuilder { methode, ..self }
     }
 
@@ -166,6 +172,9 @@ impl<U> RequeteBuilder<U> {
     ///   `E0271 type mismatch resolving … expected &(String, String), found (String, String)`. `self` vous
     ///   appartient : `into_iter()`.
     pub fn entete(self, nom: &str, valeur: &str) -> Self {
+        // But : un nouveau builder, sans `push` sur l'ancien.
+        // `into_iter` déplace les en-têtes (aucun clone), `chain(once(..))` ajoute le nouveau à la fin.
+        // `..self` ne reprend que les champs non cités : `entetes` est déjà déplacé, le reste suit.
         RequeteBuilder {
             entetes: self
                 .entetes
@@ -181,6 +190,7 @@ impl<U> RequeteBuilder<U> {
     /// **Aide Rust** (ch00, section 5)
     /// - `Some(corps)` donne `E0308 … expected String, found &str` : le champ est une `Option<String>`.
     pub fn corps(self, corps: &str) -> Self {
+        // Même schéma que `methode`.
         RequeteBuilder {
             corps: Some(corps.to_string()),
             ..self
@@ -195,6 +205,7 @@ impl RequeteBuilder<AvecUrl> {
     /// - `url: self.url` donne `E0308 … expected String, found AvecUrl` : la `String` est dans le champ `.0` du tuple
     ///   struct `AvecUrl`.
     pub fn envoyer(self) -> Requete {
+        // Aucun `expect` : sur `RequeteBuilder<AvecUrl>`, l'URL est forcément là. `.0` sort la `String` de `AvecUrl`.
         Requete {
             methode: self.methode,
             url: self.url.0,

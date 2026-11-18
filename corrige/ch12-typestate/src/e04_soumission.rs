@@ -96,6 +96,7 @@ pub struct Soumission<S> {
 impl<S> Soumission<S> {
     /// Le nom de l'équipe, dans tous les états.
     pub fn equipe(&self) -> &str {
+        // Commun à tous les états : on prête le nom.
         &self.equipe
     }
 }
@@ -106,6 +107,7 @@ impl Soumission<EnAttente> {
     /// **Aide Rust** (ch00, section 5)
     /// - `equipe` est une `&str`, le champ une `String` : `E0308 … expected String, found &str`.
     pub fn nouvelle(equipe: &str, predictions: Vec<f64>) -> Self {
+        // `predictions` est déjà un `Vec` possédé : on le déplace tel quel (raccourci de `predictions: predictions`).
         Soumission {
             equipe: equipe.to_string(),
             predictions,
@@ -123,6 +125,9 @@ impl Soumission<EnAttente> {
     /// - Le type change : `Soumission { etat: Scoree { score }, ..self }` donne
     ///   `E0308 … expected Soumission<Scoree>, found Soumission<EnAttente>`. Listez les champs.
     pub fn scorer(self, verite: &[f64]) -> Result<Soumission<Scoree>, ErreurScore> {
+        // But : vérifier, calculer la MAE, rendre la soumission dans son nouvel état.
+        // Transition qui peut échouer : le `Ok` contient déjà la soumission dans son nouvel état, l'`Err` l'abandonne.
+        // Les longueurs d'abord (ordre demandé), puis le vide : sans ce test, 0.0 / 0.0 donnerait un score NaN.
         if self.predictions.len() != verite.len() {
             return Err(ErreurScore::LongueursDifferentes {
                 verite: verite.len(),
@@ -150,6 +155,7 @@ impl Soumission<EnAttente> {
 impl Soumission<Scoree> {
     /// Le score : pas d'`Option`, il existe forcément.
     pub fn score(&self) -> f64 {
+        // `f64` est `Copy` : on rend le score par valeur. Cette méthode n'existe que sur `Soumission<Scoree>`.
         self.etat.score
     }
 }
@@ -163,6 +169,9 @@ impl Soumission<Scoree> {
 /// - Pour comparer deux `f64` dans `trier_par`, `partial_cmp` rend une `Option<Ordering>`
 ///   (`E0308 … expected Ordering, found Option<Ordering>`) : `total_cmp`.
 pub fn classement(soumissions: &[Soumission<Scoree>]) -> Vec<(String, f64)> {
+    // But : aucun `expect`, aucun `unwrap` : le type a déjà tout vérifié.
+    // Rien à déballer : le type de la tranche garantit que chaque soumission a un score. `total_cmp` est un ordre
+    // total sur les `f64` ; `trier_par` s'appuie sur `sort_by`, qui est stable, d'où l'ordre d'arrivée à égalité.
     trier_par(
         soumissions.iter().map(|s| (s.equipe.clone(), s.score())),
         |a, b| a.1.total_cmp(&b.1),

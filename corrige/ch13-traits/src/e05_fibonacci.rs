@@ -51,6 +51,7 @@ impl Default for Fibonacci {
     /// **Aide Rust** (ch00, section 11)
     /// - Les champs sont des `Option<u64>` : `courant: 0` donne `E0308 … expected Option<u64>, found integer`.
     fn default() -> Self {
+        // `Default` à la main : `derive(Default)` mettrait `None` dans les deux champs, donc une suite vide.
         Fibonacci {
             courant: Some(0),
             suivant: Some(1),
@@ -69,6 +70,9 @@ impl Iterator for Fibonacci {
     /// - Ici on modifie les champs (`self.courant = ...`), c'est le rôle de `next`. Mais pas de `let mut` : le test
     ///   de style le refuse.
     fn next(&mut self) -> Option<u64> {
+        // But : rendre le terme courant, avancer d'un cran, s'arrêter au lieu de déborder.
+        // `?` sur `self.courant` arrête l'itérateur quand il vaut `None`. `checked_add` rend `None` au débordement :
+        // le `None` remonte de `suivant` à `courant` en deux appels, et la suite s'arrête après F(93).
         let rendu = self.courant?;
         let apres = self.suivant.and_then(|s| s.checked_add(rendu));
         self.courant = self.suivant;
@@ -85,6 +89,7 @@ impl Iterator for Fibonacci {
 ///   (`E0599 no function or associated item named new`), et `Fibonacci` seul n'est pas une valeur
 ///   (`E0423 expected value, found struct Fibonacci`).
 pub fn premiers(n: usize) -> Vec<u64> {
+    // `take` est une méthode par défaut du trait `Iterator`, bâtie sur notre `next` : rien à écrire de plus.
     Fibonacci::default().take(n).collect()
 }
 
@@ -95,6 +100,8 @@ pub fn premiers(n: usize) -> Vec<u64> {
 ///   déstructure.
 /// - `take_while` avant `filter` : il faut s'arrêter au premier terme trop grand, pas filtrer toute la suite.
 pub fn somme_pairs(max: u64) -> u64 {
+    // But : une chaîne d'adaptateurs sur `Fibonacci`.
+    // `take_while`, `filter` et `sum` sont fournis par `Iterator` dès que `next` existe.
     Fibonacci::default()
         .take_while(|&terme| terme <= max)
         .filter(|terme| terme % 2 == 0)

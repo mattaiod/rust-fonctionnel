@@ -24,6 +24,8 @@ pub fn factorielle_imperatif(n: u64) -> u64 {
 /// - Ici le type de retour `u64` suffit au compilateur. Si vous enchaînez une méthode juste après (`.product().max(1)`),
 ///   il ne sait plus quel type produire : ``E0282: type annotations needed`` → `product::<u64>()`.
 pub fn factorielle(n: u64) -> u64 {
+    // Outils : la *range* `1..=n`, `product()`.
+    // `product` part de 1 : la range vide `1..=0` donne `0! = 1` sans cas particulier.
     (1..=n).product()
 }
 
@@ -33,6 +35,9 @@ pub fn factorielle(n: u64) -> u64 {
 /// - Le cas de base est `0`. Avec `if n == 1`, `factorielle_rec(0)` calcule `0 - 1` sur un `u64` et le test panique :
 ///   ``attempt to subtract with overflow``.
 pub fn factorielle_rec(n: u64) -> u64 {
+    // Outils : `match n { 0 => …, _ => … }`, un appel à `factorielle_rec`.
+    // Le cas `0` est filtré en premier : `n - 1` n'est jamais calculé sur 0, donc pas de dépassement de `u64`.
+    // La multiplication a lieu au retour de l'appel : `n + 1` appels s'empilent avant le premier résultat.
     match n {
         0 => 1,
         _ => n * factorielle_rec(n - 1),

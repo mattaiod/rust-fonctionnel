@@ -15,6 +15,8 @@ use crate::lire_capteur;
 
 /// Les capteurs 1, 2 et 3, lus en même temps.
 pub async fn lire_trois() -> (f64, f64, f64) {
+    // `join!` fait avancer les trois futures dans la même tâche : les trois attentes de 100 ms se recouvrent.
+    // Aucun thread de plus ; le tuple rendu suit l'ordre des arguments.
     tokio::join!(lire_capteur(1), lire_capteur(2), lire_capteur(3))
 }
 

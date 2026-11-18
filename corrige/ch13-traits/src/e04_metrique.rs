@@ -80,6 +80,8 @@ pub struct Mae;
 /// - `count() as f64 / verite.len()` donne `E0277 cannot divide f64 by usize` : convertissez les deux côtés. Et
 ///   `(count / len) as f64` divise des entiers d'abord : 0 ou 1.
 pub fn exactitude(verite: &[u32], predictions: &[u32]) -> Option<f64> {
+    // `bool::then` est paresseux : la closure ne tourne que si les tailles conviennent, donc jamais de division
+    // par zéro. Le résultat est déjà l'`Option<f64>` attendue.
     (verite.len() == predictions.len() && !verite.is_empty()).then(|| {
         verite
             .iter()
@@ -95,6 +97,7 @@ pub fn exactitude(verite: &[u32], predictions: &[u32]) -> Option<f64> {
 /// **Aide Rust** (ch00, section 12)
 /// - `sum()` suivi d'une division ne sait pas quel type produire (`E0283 type annotations needed`) : `sum::<f64>()`.
 pub fn mae(verite: &[f64], predictions: &[f64]) -> Option<f64> {
+    // Même schéma que `exactitude`, avec `sum::<f64>()`.
     (verite.len() == predictions.len() && !verite.is_empty()).then(|| {
         verite
             .iter()
@@ -111,6 +114,8 @@ impl Metrique for Exactitude {
     /// **Aide Rust** (ch00, sections 5, 13)
     /// - Un littéral `"..."` est déjà un `&'static str`. `.to_string()` donne `E0308 … expected &str, found String`.
     fn nom(&self) -> &'static str {
+        // But : `exactitude`.
+        // Un littéral est déjà un `&'static str` : aucune allocation.
         "exactitude"
     }
 
@@ -119,6 +124,7 @@ impl Metrique for Exactitude {
     ///   `E0425 cannot find function calculer` et propose `self.calculer(...)` : c'est un piège, cela rappelle cette
     ///   méthode à l'infini (`warning: function cannot return without recursing`).
     fn calculer(&self, verite: &[u32], predictions: &[u32]) -> Option<f64> {
+        // On délègue à la fonction libre. Le trait relie seulement le type `Exactitude` à son calcul.
         exactitude(verite, predictions)
     }
 }
@@ -127,10 +133,13 @@ impl Metrique for Mae {
     type Valeur = f64;
 
     fn nom(&self) -> &'static str {
+        // But : `mae`.
+        // Même chose pour `Mae`.
         "mae"
     }
 
     fn calculer(&self, verite: &[f64], predictions: &[f64]) -> Option<f64> {
+        // Même délégation. Ici `type Valeur = f64` : la signature de `calculer` prend des `&[f64]`.
         mae(verite, predictions)
     }
 }
@@ -163,6 +172,9 @@ pub fn rapport<M: Metrique>(
     verite: &[M::Valeur],
     predictions: &[M::Valeur],
 ) -> String {
+    // But : une seule fonction pour toutes les métriques.
+    // `M: Metrique` est un générique : le compilateur produit une version par métrique (pas de `dyn`), et
+    // `M::Valeur` impose le bon type de données. Attention à l'ordre de `map_or_else` : le cas `None` d'abord.
     metrique.calculer(verite, predictions).map_or_else(
         || format!("{} : incalculable", metrique.nom()),
         |valeur| format!("{} : {valeur:.3}", metrique.nom()),

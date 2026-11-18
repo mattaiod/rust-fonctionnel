@@ -36,6 +36,10 @@ pub fn somme_imperatif(liste: &[i64]) -> i64 {
 /// - Si le compilateur dit `` error[E0425]: cannot find value `reste` in this scope `` : vous avez écrit `..reste` ; la
 ///   syntaxe est `reste @ ..`.
 pub fn longueur(liste: &[i64]) -> usize {
+    // Une liste vide mesure 0 ; sinon, 1 de plus que le reste.
+    // Le slice pattern `[_, reste @ ..]` sépare la tête du reste sans copie : `reste` est un sous-slice emprunté.
+    // Chaque appel raccourcit la liste d'un élément : on finit toujours sur `[]`, le cas de base, donc ça termine.
+    // Un appel par élément : sur une très longue liste, la pile peut déborder. En vrai code, `liste.len()`.
     match liste {
         [] => 0,
         [_, reste @ ..] => 1 + longueur(reste),
@@ -48,6 +52,8 @@ pub fn longueur(liste: &[i64]) -> usize {
 /// - Mêmes erreurs que `longueur`. Ici `premier` est un `&i64` : `premier + somme(reste)` marche quand même, l'addition
 ///   accepte une référence.
 pub fn somme(liste: &[i64]) -> i64 {
+    // Une liste vide vaut 0 ; sinon, le premier élément plus la somme du reste.
+    // Même schéma que `longueur`. `premier` est un `&i64` : `&i64 + i64` marche, `Add` existe pour les références.
     match liste {
         [] => 0,
         [premier, reste @ ..] => premier + somme(reste),
